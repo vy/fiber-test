@@ -4,6 +4,27 @@ set -e
 
 projDir=$(dirname $(readlink -f "$0"))
 
+findCpuList() {
+    local cpuCount=$( \
+        cat "/proc/cpuinfo" | \
+        grep "cpu cores" | \
+        head -n 1 | \
+        sed -r 's/.*([0-9]+)$/\1/g')
+    echo "0-$[$cpuCount-1]"
+}
+
+[ -z "$workerCount" ] && workerCount=503
+[ -z "$ringSize" ] && ringSize=50000000
+[ -z "$cpuList" ] && cpuList=$(findCpuList)
+
+if [ "$1" = "-h" -o "$1" = "--help" ]; then
+    echo "Available parameters (with defaults):"
+    echo "    workerCount ($workerCount)"
+    echo "    ringSize    ($ringSize)"
+    echo "    cpuList     ($cpuList)"
+    exit 0
+fi
+
 error() {
     echo "$@" >&2
 }
@@ -45,10 +66,8 @@ uberJar=$(requireFile \
     "$projDir/target/$artifactId.jar")
 quasarJar=$(findQuasarJar)
 
-[ -z "$workerCount" ] && workerCount=503
-[ -z "$ringSize" ] && ringSize=50000000
-
-cmd="$JAVA_HOME/bin/java \
+cmd="taskset -c $cpuList \
+$JAVA_HOME/bin/java \
 -server -XX:+TieredCompilation -XX:+AggressiveOpts \
 -jar \"$uberJar\" \
 -jvmArgsAppend \"-DworkerCount=$workerCount -DringSize=$ringSize -javaagent:$quasarJar\" \

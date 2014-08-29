@@ -4,7 +4,7 @@ of a multitude of threading implementations in the Java Virtual Machine.
 Benchmarks
 ----------
 
-As of now, there is just a single benchmark (ring) adopted from
+As of now, there is just a single benchmark (ring) adopted from the
 [Performance Measurements of Threads in Java and Processes in
 Erlang](http://www.sics.se/~joe/ericsson/du98024.html) article. I plan to
 introduce new benchmarks as time allows. That being said, contributions are
@@ -28,10 +28,17 @@ You first need to build the JMH Uber JAR using Maven.
 
 Next, you can either use the provided `benchmark.sh` script
 
-    $ ./benchmark.sh
-    
-    # You can also specify ringSize and workerCount environment variables. 
-    $ ringSize=500 workerCount=30 ./benchmark.sh
+    $ ./benchmark.sh --help
+    Available parameters (with defaults):
+        workerCount (503)
+        ringSize    (50000000)
+        cpuList     (0-1)
+
+    # You can run with default parameters.
+    $ ./benchmarks.sh
+
+    # Alternatively, you can configure parameters through environment variables.
+    $ ringSize=500 workerCount=30 cpuList=0-7 ./benchmark.sh
 
 or call JMH manually:
 
