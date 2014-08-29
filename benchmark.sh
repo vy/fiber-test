@@ -14,7 +14,7 @@ findCpuList() {
 }
 
 [ -z "$workerCount" ] && workerCount=503
-[ -z "$ringSize" ] && ringSize=50000000
+[ -z "$ringSize" ] && ringSize=1000000
 [ -z "$cpuList" ] && cpuList=$(findCpuList)
 
 if [ "$1" = "-h" -o "$1" = "--help" ]; then

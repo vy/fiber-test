@@ -31,7 +31,7 @@ Next, you can either use the provided `benchmark.sh` script
     $ ./benchmark.sh --help
     Available parameters (with defaults):
         workerCount (503)
-        ringSize    (50000000)
+        ringSize    (1000000)
         cpuList     (0-1)
 
     # You can run with default parameters.
@@ -44,7 +44,7 @@ or call JMH manually:
 
     $ java \
     > -jar target/fiber-test.jar \
-    > -jvmArgsAppend "-DworkerCount=503 -DringSize=50000000 -javaagent:/path/to/quasar-core-<version>.jar" \
+    > -jvmArgsAppend "-DworkerCount=503 -DringSize=1000000 -javaagent:/path/to/quasar-core-<version>.jar" \
     > -wi 5 -i 10 -bm avgt -tu ms -f 5 \
     > ".*RingBenchmark.*"
 
