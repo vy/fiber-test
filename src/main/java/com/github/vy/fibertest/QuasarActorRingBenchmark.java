@@ -58,4 +58,8 @@ public class QuasarActorRingBenchmark extends AbstractRingBenchmark {
         return sequences;
     }
 
+    public static void main(String[] args) throws Exception {
+        new QuasarActorRingBenchmark().ringBenchmark();
+    }
+
 }

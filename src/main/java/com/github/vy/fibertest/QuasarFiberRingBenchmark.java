@@ -63,4 +63,8 @@ public class QuasarFiberRingBenchmark extends AbstractRingBenchmark {
         return sequences;
     }
 
+    public static void main(String[] args) throws Exception {
+        new QuasarFiberRingBenchmark().ringBenchmark();
+    }
+
 }

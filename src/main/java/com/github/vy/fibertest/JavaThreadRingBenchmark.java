@@ -66,4 +66,8 @@ public class JavaThreadRingBenchmark extends AbstractRingBenchmark {
         return sequences;
     }
 
+    public static void main(String[] args) throws Exception {
+        new JavaThreadRingBenchmark().ringBenchmark();
+    }
+
 }

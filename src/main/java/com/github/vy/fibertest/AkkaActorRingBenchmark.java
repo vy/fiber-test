@@ -74,4 +74,8 @@ public class AkkaActorRingBenchmark extends AbstractRingBenchmark {
         return sequences;
     }
 
+    public static void main(String[] args) throws Exception {
+        new AkkaActorRingBenchmark().ringBenchmark();
+    }
+
 }
