@@ -59,6 +59,20 @@ create an all-in-one JAR and run benchmarks individually.
     > -cp target/fiber-test-<version>-jar-with-dependencies.jar \
     > com.github.vy.fibertest.QuasarFiberRingBenchmark
 
+Results
+-------
+
+For `Oracle Java 1.8.0_60-b27` running on `Intel(R) Core(TM) i7-4702MQ CPU @ 2.20GHz` on `Linux 3.13.0-63-generic x86_64` kernel:
+
+```
+JavaThreadRingBenchmark.ringBenchmark      avgt   50  7741,274 ± 476,113  ms/op
+QuasarActorRingBenchmark.ringBenchmark     avgt   50  1702,764 ±  65,940  ms/op
+QuasarDataflowRingBenchmark.ringBenchmark  avgt   50  1512,901 ±  55,922  ms/op
+QuasarChannelRingBenchmark.ringBenchmark   avgt   50  1417,803 ±  49,837  ms/op
+AkkaActorRingBenchmark.ringBenchmark       avgt   50   909,057 ±  38,941  ms/op
+QuasarFiberRingBenchmark.ringBenchmark     avgt   50   832,529 ±  47,586  ms/op
+```
+
 License
 -------
 
