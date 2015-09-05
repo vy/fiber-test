@@ -43,20 +43,6 @@ requireFile() {
 
 pomFile=$(requireFile "POM file" "$projDir/pom.xml")
 
-findQuasarJar() {
-    local groupId="co.paralleluniverse"
-    local artifactId="quasar-core"
-    local version=$( \
-        grep -A 1 "<artifactId>$artifactId</artifactId>" "$pomFile" | \
-        tail -n 1 | \
-        sed -r 's/.*<version>(.*)<\/version>/\1/g')
-    local groupPath=$(echo "$groupId" | sed 's/\./\//g')
-    local repoDir="$HOME/.m2/repository"
-    requireFile \
-        "$groupId:$artifactId:$version JAR" \
-        "$repoDir/$groupPath/$artifactId/$version/$artifactId-$version.jar"
-}
-
 artifactId=$( \
     grep "artifactId" "$pomFile" | \
     head -n 1 | \
@@ -64,7 +50,7 @@ artifactId=$( \
 uberJar=$(requireFile \
     "Uber JAR, run \"mvn install\" first" \
     "$projDir/target/$artifactId.jar")
-quasarJar=$(findQuasarJar)
+quasarJar="$projDir/target/agents/quasar-core.jar"
 
 cmd="taskset -c $cpuList \
 $JAVA_HOME/bin/java \

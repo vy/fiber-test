@@ -70,7 +70,7 @@ public class AkkaActorRingBenchmark extends AbstractRingBenchmark {
 
         // Wait for the latch.
         latch.await();
-        system.shutdown();
+        system.terminate();
         return sequences;
     }
 

@@ -15,7 +15,7 @@ public class JavaThreadRingBenchmark extends AbstractRingBenchmark {
         protected final int[] sequences;
         protected Worker next = null;
         protected volatile boolean waiting = true;
-        protected int sequence = Integer.MAX_VALUE;
+        protected int sequence;
 
         public Worker(final int id, final int[] sequences) {
             super(String.format("%s-%s-%d",
@@ -27,13 +27,13 @@ public class JavaThreadRingBenchmark extends AbstractRingBenchmark {
 
         @Override
         public void run() {
-            while (sequence > 0) {
+            do {
                 while (waiting) { LockSupport.park(); }
                 waiting = true;
                 next.sequence = sequence - 1;
                 next.waiting = false;
                 LockSupport.unpark(next);
-            }
+            } while (sequence > 0);
             sequences[id] = sequence;
         }
 

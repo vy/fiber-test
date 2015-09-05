@@ -7,9 +7,9 @@ import org.openjdk.jmh.annotations.Benchmark;
 
 public class QuasarActorRingBenchmark extends AbstractRingBenchmark {
 
-    protected static class InternalActor extends Actor {
+    protected static class InternalActor extends Actor<Integer, Integer> {
 
-        protected ActorRef next = null;
+        protected ActorRef<Integer> next = null;
 
         public InternalActor(int id) {
             super(String.format("%s-%s-%d",
@@ -18,15 +18,12 @@ public class QuasarActorRingBenchmark extends AbstractRingBenchmark {
         }
 
         @Override
-        protected Object doRun() throws InterruptedException, SuspendExecution {
-            int sequence = Integer.MAX_VALUE;
-            while (sequence > 0) {
-                Object message = receive();
-                if (message instanceof Integer) {
-                    sequence = (Integer) message;
-                    next.send(sequence - 1);
-                }
-            }
+        protected Integer doRun() throws InterruptedException, SuspendExecution {
+            Integer sequence;
+            do {
+                sequence = receive();
+                next.send(sequence - 1);
+            } while (sequence > 0);
             return sequence;
         }
 
@@ -37,7 +34,7 @@ public class QuasarActorRingBenchmark extends AbstractRingBenchmark {
     public int[] ringBenchmark() throws Exception {
         // Create and start actors.
         final InternalActor[] actors = new InternalActor[workerCount];
-        final ActorRef[] actorRefs = new ActorRef[workerCount];
+        final ActorRef<Integer>[] actorRefs = new ActorRef[workerCount];
         for (int i = 0; i < workerCount; i++) {
             InternalActor actor = new InternalActor(i);
             actors[i] = actor;
