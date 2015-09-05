@@ -2,7 +2,6 @@ package com.github.vy.fibertest;
 
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.SuspendExecution;
-import co.paralleluniverse.fibers.Suspendable;
 import co.paralleluniverse.strands.channels.Channels;
 import co.paralleluniverse.strands.channels.IntChannel;
 import org.openjdk.jmh.annotations.Benchmark;
@@ -21,7 +20,6 @@ public class QuasarChannelRingBenchmark extends AbstractRingBenchmark {
         }
 
         @Override
-        @Suspendable
         public Integer run() throws SuspendExecution, InterruptedException {
             Integer sequence;
             do {
