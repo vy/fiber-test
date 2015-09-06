@@ -33,7 +33,7 @@ public class QuasarChannelRingBenchmark extends AbstractRingBenchmark {
 
     @Override
     @Benchmark
-    public int[] ringBenchmark() throws Exception {
+    public Integer[] ringBenchmark() throws Exception {
         // Create fibers.
         final InternalFiber[] fibers = new InternalFiber[workerCount];
         for (int i = 0; i < workerCount; i++)
@@ -51,7 +51,7 @@ public class QuasarChannelRingBenchmark extends AbstractRingBenchmark {
         first.subscriberChannel.send(ringSize);
 
         // Wait for fibers to complete.
-        final int[] sequences = new int[workerCount];
+        final Integer[] sequences = new Integer[workerCount];
         for (int i = 0; i < workerCount; i++)
             sequences[i] = fibers[i].get();
         return sequences;

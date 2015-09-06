@@ -17,6 +17,6 @@ abstract class AbstractRingBenchmark {
         this.ringSize = Integer.parseInt(System.getProperty("ringSize"));
     }
 
-    abstract public int[] ringBenchmark() throws Exception;
+    abstract public Integer[] ringBenchmark() throws Exception;
 
 }

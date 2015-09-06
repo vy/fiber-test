@@ -2,9 +2,6 @@ package com.github.vy.fibertest;
 
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.SuspendExecution;
-import co.paralleluniverse.strands.Strand;
-import co.paralleluniverse.strands.channels.Channels;
-import co.paralleluniverse.strands.channels.IntChannel;
 import co.paralleluniverse.strands.dataflow.Var;
 import org.openjdk.jmh.annotations.Benchmark;
 
@@ -34,7 +31,7 @@ public class QuasarDataflowRingBenchmark extends AbstractRingBenchmark {
 
     @Override
     @Benchmark
-    public int[] ringBenchmark() throws Exception {
+    public Integer[] ringBenchmark() throws Exception {
         // Create fibers.
         final InternalFiber[] fibers = new InternalFiber[workerCount];
         for (int i = 0; i < workerCount; i++)
@@ -52,7 +49,7 @@ public class QuasarDataflowRingBenchmark extends AbstractRingBenchmark {
         first.current.set(ringSize);
 
         // Wait for fibers to complete.
-        final int[] sequences = new int[workerCount];
+        final Integer[] sequences = new Integer[workerCount];
         for (int i = 0; i < workerCount; i++)
             sequences[i] = fibers[i].get();
         return sequences;

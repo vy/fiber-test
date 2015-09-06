@@ -12,12 +12,12 @@ public class JavaThreadRingBenchmark extends AbstractRingBenchmark {
     protected static class Worker extends Thread {
 
         protected final int id;
-        protected final int[] sequences;
+        protected final Integer[] sequences;
         protected Worker next = null;
         protected volatile boolean waiting = true;
         protected int sequence;
 
-        public Worker(final int id, final int[] sequences) {
+        public Worker(final int id, final Integer[] sequences) {
             super(String.format("%s-%s-%d",
                     JavaThreadRingBenchmark.class.getSimpleName(),
                     Worker.class.getSimpleName(), id));
@@ -41,9 +41,9 @@ public class JavaThreadRingBenchmark extends AbstractRingBenchmark {
 
     @Override
     @Benchmark
-    public int[] ringBenchmark() throws Exception {
+    public Integer[] ringBenchmark() throws Exception {
         // Create worker threads.
-        final int[] sequences = new int[workerCount];
+        final Integer[] sequences = new Integer[workerCount];
         final Worker[] workers = new Worker[workerCount];
         for (int i = 0; i < workerCount; i++)
             workers[i] = new Worker(i, sequences);

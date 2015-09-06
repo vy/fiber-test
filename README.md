@@ -69,7 +69,7 @@ JavaThreadRingBenchmark.ringBenchmark      avgt   50  7741,274 ± 476,113  ms/op
 QuasarActorRingBenchmark.ringBenchmark     avgt   50  1702,764 ±  65,940  ms/op
 QuasarDataflowRingBenchmark.ringBenchmark  avgt   50  1512,901 ±  55,922  ms/op
 QuasarChannelRingBenchmark.ringBenchmark   avgt   50  1417,803 ±  49,837  ms/op
-AkkaActorRingBenchmark.ringBenchmark       avgt   50   909,057 ±  38,941  ms/op
+AkkaActorRingBenchmark.ringBenchmark       avgt   50   881,072 ±  33,921  ms/op
 QuasarFiberRingBenchmark.ringBenchmark     avgt   50   832,529 ±  47,586  ms/op
 ```
 
