@@ -31,7 +31,7 @@ public class QuasarDataflowRingBenchmark extends AbstractRingBenchmark {
 
     @Override
     @Benchmark
-    public Integer[] ringBenchmark() throws Exception {
+    public int[] ringBenchmark() throws Exception {
         // Create fibers.
         final InternalFiber[] fibers = new InternalFiber[workerCount];
         for (int i = 0; i < workerCount; i++)
@@ -49,7 +49,7 @@ public class QuasarDataflowRingBenchmark extends AbstractRingBenchmark {
         first.current.set(ringSize);
 
         // Wait for fibers to complete.
-        final Integer[] sequences = new Integer[workerCount];
+        final int[] sequences = new int[workerCount];
         for (int i = 0; i < workerCount; i++)
             sequences[i] = fibers[i].get();
         return sequences;

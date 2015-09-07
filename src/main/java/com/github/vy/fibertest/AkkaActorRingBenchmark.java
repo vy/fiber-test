@@ -5,7 +5,7 @@ import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
 import akka.dispatch.Futures;
-import com.google.common.collect.Iterables;
+import com.google.common.primitives.Ints;
 import org.openjdk.jmh.annotations.Benchmark;
 import scala.concurrent.Await;
 import scala.concurrent.Future;
@@ -13,6 +13,7 @@ import scala.concurrent.Promise;
 import scala.concurrent.duration.Duration;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -53,7 +54,7 @@ public class AkkaActorRingBenchmark extends AbstractRingBenchmark {
 
     @Override
     @Benchmark
-    public Integer[] ringBenchmark() throws Exception {
+    public int[] ringBenchmark() throws Exception {
         // Create an actor system and a shutdown latch.
         final ActorSystem system = ActorSystem.create(AkkaActorRingBenchmark.class.getSimpleName() + "System");
 
@@ -78,7 +79,8 @@ public class AkkaActorRingBenchmark extends AbstractRingBenchmark {
         // Wait for the latch.
         Iterable<Integer> sequences = Await.result(Futures.sequence(futures, system.dispatcher()), Duration.apply(10, TimeUnit.MINUTES));
         system.terminate();
-        return Iterables.toArray(sequences, Integer.class);
+
+        return Ints.toArray((Collection<Integer>) sequences);
     }
 
     public static void main(String[] args) throws Exception {

@@ -31,7 +31,7 @@ public class QuasarActorRingBenchmark extends AbstractRingBenchmark {
 
     @Override
     @Benchmark
-    public Integer[] ringBenchmark() throws Exception {
+    public int[] ringBenchmark() throws Exception {
         // Create and start actors.
         final InternalActor[] actors = new InternalActor[workerCount];
         final ActorRef<Integer>[] actorRefs = new ActorRef[workerCount];
@@ -49,7 +49,7 @@ public class QuasarActorRingBenchmark extends AbstractRingBenchmark {
         actorRefs[0].send(ringSize);
 
         // Wait for actors to finish and collect the results.
-        Integer[] sequences = new Integer[workerCount];
+        int[] sequences = new int[workerCount];
         for (int i = 0; i < workerCount; i++)
             sequences[i] = actors[i].get();
         return sequences;
