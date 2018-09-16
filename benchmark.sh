@@ -5,12 +5,8 @@ set -e
 projDir=$(dirname $(readlink -f "$0"))
 
 findCpuList() {
-    local cpuCount=$( \
-        cat "/proc/cpuinfo" | \
-        grep "cpu cores" | \
-        head -n 1 | \
-        sed -r 's/.*([0-9]+)$/\1/g')
-    echo "0-$[$cpuCount-1]"
+    local maxCpuIndex=$(lscpu -p=cpu | tail -n 1)
+    echo "0-$maxCpuIndex"
 }
 
 [ -z "$workerCount" ] && workerCount=503

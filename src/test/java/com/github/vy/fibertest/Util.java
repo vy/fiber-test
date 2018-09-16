@@ -7,24 +7,27 @@ import java.util.Arrays;
 
 import static org.junit.Assert.assertEquals;
 
-class Util {
+enum Util {;
 
-    private static final Logger log = LoggerFactory.getLogger(Util.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(Util.class);
 
     static void testRingBenchmark(
-            final int workerCount,
-            final int ringSize,
-            final int[] sequences) {
-        final int offset = workerCount - ringSize % workerCount;
-        for (int i = 0; i < workerCount; i++)
+            int workerCount,
+            int ringSize,
+            int[] sequences) {
+        int offset = workerCount - ringSize % workerCount;
+        for (int workerIndex = 0; workerIndex < workerCount; workerIndex++) {
             try {
+                int expectedSequence = -((offset + workerIndex) % workerCount);
+                int actualSequence = sequences[workerIndex];
                 assertEquals(
-                        "sequence returned by Worker#" + i,
-                        -((offset + i) % workerCount), sequences[i]);
+                        "sequence returned by Worker#" + workerIndex,
+                        expectedSequence, actualSequence);
             } catch (AssertionError ae) {
-                log.trace("sequences[] = {}", Arrays.toString(sequences));
+                LOGGER.trace("sequences[] = {}", Arrays.toString(sequences));
                 throw ae;
             }
+        }
     }
 
 }

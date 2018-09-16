@@ -25,29 +25,35 @@ import java.util.concurrent.TimeUnit;
  */
 public class AkkaActorRingBenchmark extends AbstractRingBenchmark {
 
-    protected static class InternalActor extends UntypedActor {
+    /** @noinspection deprecation (easier to use in Java) */
+    private static class InternalActor extends UntypedActor {
 
-        protected final int id;
-        protected final Promise<Integer> promise;
-        protected ActorRef next = null;
+        /** @noinspection unused (kept for debugging purposes) */
+        private final int id;
 
-        public InternalActor(final int id, final Promise<Integer> promise) {
+        private final Promise<Integer> promise;
+
+        private ActorRef next = null;
+
+        private InternalActor(int id, Promise<Integer> promise) {
             this.id = id;
             this.promise = promise;
         }
 
         @Override
-        public void onReceive(final Object message) throws Exception {
+        public void onReceive(final Object message) {
             if (message instanceof Integer) {
-                final int sequence = (Integer) message;
+                int sequence = (Integer) message;
                 if (sequence < 1) {
                     promise.success(sequence);
                     getContext().stop(getSelf());
                 }
                 next.tell(sequence - 1, getSelf());
+            } else if (message instanceof ActorRef) {
+                next = (ActorRef) message;
+            } else {
+                unhandled(message);
             }
-            else if (message instanceof ActorRef) next = (ActorRef) message;
-            else unhandled(message);
         }
 
     }
@@ -55,32 +61,38 @@ public class AkkaActorRingBenchmark extends AbstractRingBenchmark {
     @Override
     @Benchmark
     public int[] ringBenchmark() throws Exception {
-        // Create an actor system and a shutdown latch.
-        final ActorSystem system = ActorSystem.create(AkkaActorRingBenchmark.class.getSimpleName() + "System");
+
+        // Create the actor system.
+        ActorSystem system = ActorSystem.create(AkkaActorRingBenchmark.class.getSimpleName() + "System");
 
         // Create actors.
-        final List<Future<Integer>> futures = new ArrayList<>(workerCount);
-        final ActorRef[] actors = new ActorRef[workerCount];
-        for (int i = 0; i < workerCount; i++) {
+        List<Future<Integer>> futures = new ArrayList<>(workerCount);
+        ActorRef[] actors = new ActorRef[workerCount];
+        for (int workerIndex = 0; workerIndex < workerCount; workerIndex++) {
             Promise<Integer> promise = Futures.promise();
             futures.add(promise.future());
-            actors[i] = system.actorOf(
-                    Props.create(InternalActor.class, i, promise),
-                    String.format("%s-%d", AkkaActorRingBenchmark.class.getSimpleName(), i));
+            Props actorProps = Props.create(InternalActor.class, workerIndex, promise);
+            String actorName = String.format("%s-%d", AkkaActorRingBenchmark.class.getSimpleName(), workerIndex);
+            actors[workerIndex] = system.actorOf(
+                    actorProps,
+                    actorName);
         }
 
         // Set next actor pointers.
-        for (int i = 0; i < workerCount; i++)
-            actors[i].tell(actors[(i+1) % workerCount], null);
+        for (int workerIndex = 0; workerIndex < workerCount; workerIndex++) {
+            actors[workerIndex].tell(actors[(workerIndex + 1) % workerCount], null);
+        }
 
         // Initiate the ring.
         actors[0].tell(ringSize, null);
 
         // Wait for the latch.
-        Iterable<Integer> sequences = Await.result(Futures.sequence(futures, system.dispatcher()), Duration.apply(10, TimeUnit.MINUTES));
+        Iterable<Integer> sequences = Await.result(
+                Futures.sequence(futures, system.dispatcher()),
+                Duration.apply(10, TimeUnit.MINUTES));
         system.terminate();
-
         return Ints.toArray((Collection<Integer>) sequences);
+
     }
 
     public static void main(String[] args) throws Exception {

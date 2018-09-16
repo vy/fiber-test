@@ -8,19 +8,20 @@ import org.openjdk.jmh.annotations.Benchmark;
 
 public class QuasarChannelRingBenchmark extends AbstractRingBenchmark {
 
-    protected static class InternalFiber extends Fiber<Integer> {
+    private static class InternalFiber extends Fiber<Integer> {
 
-        protected IntChannel subscriberChannel = Channels.newIntChannel(10000);
-        protected IntChannel publisherChannel;
+        private IntChannel subscriberChannel = Channels.newIntChannel(10000);
 
-        public InternalFiber(final int id) {
+        private IntChannel publisherChannel;
+
+        private InternalFiber(int id) {
             super(String.format("%s-%s-%d",
                     QuasarChannelRingBenchmark.class.getSimpleName(),
                     InternalFiber.class.getSimpleName(), id));
         }
 
         @Override
-        public Integer run() throws SuspendExecution, InterruptedException {
+        protected Integer run() throws SuspendExecution, InterruptedException {
             Integer sequence;
             do {
                 sequence = subscriberChannel.receive();
@@ -29,32 +30,40 @@ public class QuasarChannelRingBenchmark extends AbstractRingBenchmark {
             subscriberChannel.close();
             return sequence;
         }
+
     }
 
     @Override
     @Benchmark
     public int[] ringBenchmark() throws Exception {
+
         // Create fibers.
-        final InternalFiber[] fibers = new InternalFiber[workerCount];
-        for (int i = 0; i < workerCount; i++)
-            fibers[i] = new InternalFiber(i);
+        InternalFiber[] fibers = new InternalFiber[workerCount];
+        for (int workerIndex = 0; workerIndex < workerCount; workerIndex++) {
+            fibers[workerIndex] = new InternalFiber(workerIndex);
+        }
 
         // Set next fiber pointers.
-        for (int i = 0; i < workerCount; i++)
-            fibers[i].publisherChannel = fibers[(i+1) % workerCount].subscriberChannel;
+        for (int workerIndex = 0; workerIndex < workerCount; workerIndex++) {
+            fibers[workerIndex].publisherChannel = fibers[(workerIndex + 1) % workerCount].subscriberChannel;
+        }
 
         // Start fibers.
-        for (final InternalFiber fiber : fibers) fiber.start();
+        for (InternalFiber fiber : fibers) {
+            fiber.start();
+        }
 
         // Initiate the ring.
-        final InternalFiber first = fibers[0];
+        InternalFiber first = fibers[0];
         first.subscriberChannel.send(ringSize);
 
         // Wait for fibers to complete.
-        final int[] sequences = new int[workerCount];
-        for (int i = 0; i < workerCount; i++)
-            sequences[i] = fibers[i].get();
+        int[] sequences = new int[workerCount];
+        for (int workerIndex = 0; workerIndex < workerCount; workerIndex++) {
+            sequences[workerIndex] = fibers[workerIndex].get();
+        }
         return sequences;
+
     }
 
     public static void main(String[] args) throws Exception {

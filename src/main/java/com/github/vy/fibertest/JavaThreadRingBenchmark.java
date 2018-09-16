@@ -9,15 +9,19 @@ import java.util.concurrent.locks.LockSupport;
  */
 public class JavaThreadRingBenchmark extends AbstractRingBenchmark {
 
-    protected static class Worker extends Thread {
+    private static class Worker extends Thread {
 
-        protected final int id;
-        protected final int[] sequences;
-        protected Worker next = null;
-        protected volatile boolean waiting = true;
-        protected int sequence;
+        private final int id;
 
-        public Worker(final int id, final int[] sequences) {
+        private final int[] sequences;
+
+        private Worker next = null;
+
+        private volatile boolean waiting = true;
+
+        private int sequence;
+
+        private Worker(int id, int[] sequences) {
             super(String.format("%s-%s-%d",
                     JavaThreadRingBenchmark.class.getSimpleName(),
                     Worker.class.getSimpleName(), id));
@@ -28,7 +32,9 @@ public class JavaThreadRingBenchmark extends AbstractRingBenchmark {
         @Override
         public void run() {
             do {
-                while (waiting) { LockSupport.park(); }
+                while (waiting) {
+                    LockSupport.park();
+                }
                 waiting = true;
                 next.sequence = sequence - 1;
                 next.waiting = false;
@@ -42,28 +48,36 @@ public class JavaThreadRingBenchmark extends AbstractRingBenchmark {
     @Override
     @Benchmark
     public int[] ringBenchmark() throws Exception {
+
         // Create worker threads.
-        final int[] sequences = new int[workerCount];
-        final Worker[] workers = new Worker[workerCount];
-        for (int i = 0; i < workerCount; i++)
-            workers[i] = new Worker(i, sequences);
+        int[] sequences = new int[workerCount];
+        Worker[] workers = new Worker[workerCount];
+        for (int workerIndex = 0; workerIndex < workerCount; workerIndex++) {
+            workers[workerIndex] = new Worker(workerIndex, sequences);
+        }
 
         // Set next worker thread pointers.
-        for (int i = 0; i < workerCount; i++)
-            workers[i].next = workers[(i+1) % workerCount];
+        for (int workerIndex = 0; workerIndex < workerCount; workerIndex++) {
+            workers[workerIndex].next = workers[(workerIndex + 1) % workerCount];
+        }
 
         // Start workers.
-        for (final Worker worker : workers) worker.start();
+        for (Worker worker : workers) {
+            worker.start();
+        }
 
         // Initiate the ring.
-        final Worker first = workers[0];
+        Worker first = workers[0];
         first.sequence = ringSize;
         first.waiting = false;
         LockSupport.unpark(first);
 
         // Wait for workers to complete.
-        for (final Worker worker : workers) worker.join();
+        for (Worker worker : workers) {
+            worker.join();
+        }
         return sequences;
+
     }
 
     public static void main(String[] args) throws Exception {

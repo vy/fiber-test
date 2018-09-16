@@ -24,7 +24,7 @@ Usage
 
 You first need to build the JMH Uber JAR using Maven.
 
-    $ mvn clean install
+    $ mvn clean package
 
 Next, you can either use the provided `benchmark.sh` script
 

@@ -9,10 +9,11 @@ import org.openjdk.jmh.annotations.State;
 @State(Scope.Benchmark)
 abstract class AbstractRingBenchmark {
 
-    protected final int workerCount;
-    protected final int ringSize;
+    final int workerCount;
 
-    public AbstractRingBenchmark() {
+    final int ringSize;
+
+    AbstractRingBenchmark() {
         this.workerCount = Integer.parseInt(System.getProperty("workerCount"));
         this.ringSize = Integer.parseInt(System.getProperty("ringSize"));
     }

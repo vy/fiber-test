@@ -6,7 +6,8 @@ public class JavaThreadRingBenchmarkTest extends JavaThreadRingBenchmark {
 
     @Test
     public void testRingBenchmark() throws Exception {
-        Util.testRingBenchmark(workerCount, ringSize, ringBenchmark());
+        int[] sequences = ringBenchmark();
+        Util.testRingBenchmark(workerCount, ringSize, sequences);
     }
 
 }

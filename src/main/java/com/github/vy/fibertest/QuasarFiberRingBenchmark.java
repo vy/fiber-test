@@ -7,22 +7,26 @@ import org.openjdk.jmh.annotations.Benchmark;
 
 public class QuasarFiberRingBenchmark extends AbstractRingBenchmark {
 
-    protected static class InternalFiber extends Fiber<Integer> {
+    private static class InternalFiber extends Fiber<Integer> {
 
-        protected InternalFiber next;
-        protected volatile boolean waiting = true;
-        protected int sequence;
+        private InternalFiber next;
 
-        public InternalFiber(final int id) {
+        private volatile boolean waiting = true;
+
+        private int sequence;
+
+        private InternalFiber(int id) {
             super(String.format("%s-%s-%d",
                     QuasarFiberRingBenchmark.class.getSimpleName(),
                     InternalFiber.class.getSimpleName(), id));
         }
 
         @Override
-        public Integer run() throws SuspendExecution, InterruptedException {
+        protected Integer run() throws SuspendExecution {
             do {
-                while (waiting) { Strand.park(); }
+                while (waiting) {
+                    Strand.park();
+                }
                 waiting = true;
                 next.sequence = sequence - 1;
                 next.waiting = false;
@@ -36,29 +40,36 @@ public class QuasarFiberRingBenchmark extends AbstractRingBenchmark {
     @Override
     @Benchmark
     public int[] ringBenchmark() throws Exception {
+
         // Create fibers.
-        final InternalFiber[] fibers = new InternalFiber[workerCount];
-        for (int i = 0; i < workerCount; i++)
-            fibers[i] = new InternalFiber(i);
+        InternalFiber[] fibers = new InternalFiber[workerCount];
+        for (int workerIndex = 0; workerIndex < workerCount; workerIndex++) {
+            fibers[workerIndex] = new InternalFiber(workerIndex);
+        }
 
         // Set next fiber pointers.
-        for (int i = 0; i < workerCount; i++)
-            fibers[i].next = fibers[(i+1) % workerCount];
+        for (int workerIndex = 0; workerIndex < workerCount; workerIndex++) {
+            fibers[workerIndex].next = fibers[(workerIndex + 1) % workerCount];
+        }
 
         // Start fibers.
-        for (final InternalFiber fiber : fibers) fiber.start();
+        for (InternalFiber fiber : fibers) {
+            fiber.start();
+        }
 
         // Initiate the ring.
-        final InternalFiber first = fibers[0];
+        InternalFiber first = fibers[0];
         first.sequence = ringSize;
         first.waiting = false;
         Strand.unpark(first);
 
         // Wait for fibers to complete.
-        final int[] sequences = new int[workerCount];
-        for (int i = 0; i < workerCount; i++)
-            sequences[i] = fibers[i].get();
+        int[] sequences = new int[workerCount];
+        for (int workerIndex = 0; workerIndex < workerCount; workerIndex++) {
+            sequences[workerIndex] = fibers[workerIndex].get();
+        }
         return sequences;
+
     }
 
     public static void main(String[] args) throws Exception {
