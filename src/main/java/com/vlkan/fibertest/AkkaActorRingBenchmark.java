@@ -1,4 +1,4 @@
-package com.github.vy.fibertest;
+package com.vlkan.fibertest;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;

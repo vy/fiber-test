@@ -1,4 +1,4 @@
-package com.github.vy.fibertest;
+package com.vlkan.fibertest;
 
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.SuspendExecution;

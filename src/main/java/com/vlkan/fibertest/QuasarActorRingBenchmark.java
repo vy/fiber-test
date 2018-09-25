@@ -1,4 +1,4 @@
-package com.github.vy.fibertest;
+package com.vlkan.fibertest;
 
 import co.paralleluniverse.actors.Actor;
 import co.paralleluniverse.actors.ActorRef;

@@ -1,8 +1,8 @@
-package com.github.vy.fibertest;
+package com.vlkan.fibertest;
 
 import org.junit.Test;
 
-public class JavaThreadRingBenchmarkTest extends JavaThreadRingBenchmark {
+public class QuasarChannelRingBenchmarkTest extends QuasarChannelRingBenchmark {
 
     @Test
     public void testRingBenchmark() throws Exception {

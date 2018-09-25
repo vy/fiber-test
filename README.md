@@ -57,7 +57,7 @@ create an all-in-one JAR and run benchmarks individually.
     > -DworkerCount=503 -DringSize=10000000 \
     > -javaagent:/path/to/quasar-core-<version>.jar \
     > -cp target/fiber-test-<version>-jar-with-dependencies.jar \
-    > com.github.vy.fibertest.QuasarFiberRingBenchmark
+    > com.vlkan.fibertest.QuasarFiberRingBenchmark
 
 Results
 -------

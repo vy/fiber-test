@@ -1,4 +1,4 @@
-package com.github.vy.fibertest;
+package com.vlkan.fibertest;
 
 import kilim.Pausable;
 import kilim.Task;
@@ -82,7 +82,7 @@ public class KilimActorBenchmark extends AbstractRingBenchmark {
     }
 
     public static void main(String[] args) throws Exception {
-        Kilim.run("com.github.vy.fibertest.KilimActorBenchmark", "kilimEntrace", args);
+        Kilim.run("com.vlkan.fibertest.KilimActorBenchmark", "kilimEntrace", args);
     }
 
 }

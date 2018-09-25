@@ -1,4 +1,4 @@
-package com.github.vy.fibertest;
+package com.vlkan.fibertest;
 
 import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.State;

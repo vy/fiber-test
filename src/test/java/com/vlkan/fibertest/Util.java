@@ -1,4 +1,4 @@
-package com.github.vy.fibertest;
+package com.vlkan.fibertest;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

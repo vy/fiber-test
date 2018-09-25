@@ -1,4 +1,4 @@
-package com.github.vy.fibertest;
+package com.vlkan.fibertest;
 
 import kilim.tools.Kilim;
 import org.junit.Test;
@@ -14,7 +14,7 @@ public class KilimActorBenchmarkTest {
 
     @Test
     public void testRingBenchmark() throws Exception {
-        Kilim.run("com.github.vy.fibertest.KilimActorBenchmarkTest", "kilimEntrance");
+        Kilim.run("com.vlkan.fibertest.KilimActorBenchmarkTest", "kilimEntrance");
     }
 
 }
