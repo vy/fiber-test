@@ -1,3 +1,5 @@
+[![License](https://img.shields.io/github/license/vy/fiber-test.svg)](http://www.apache.org/licenses/LICENSE-2.0.txt)
+
 This project bundles a set of benchmarks that aims to measure the performance
 of a multitude of threading implementations in the Java Virtual Machine.
 
@@ -76,6 +78,16 @@ QuasarFiberRingBenchmark.ringBenchmark     avgt   50   832,529 ±  47,586  ms/op
 License
 -------
 
-The [fiber-test](https://github.com/vy/fiber-test/) by [Volkan Yazıcı](http://vlkan.com/) is licensed under the [Creative Commons Attribution 4.0 International License](http://creativecommons.org/licenses/by/4.0/).
+Copyright &copy; 2014-2018 [Volkan Yazıcı](http://vlkan.com/)
 
-[![Creative Commons Attribution 4.0 International License](http://i.creativecommons.org/l/by/4.0/80x15.png)](http://creativecommons.org/licenses/by/4.0/)
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
