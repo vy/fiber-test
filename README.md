@@ -17,9 +17,10 @@ Implementations
 
 Project employs 3 threading libraries to implement fibers in the benchmarks.
 
-1. [Standard Java Threads](http://docs.oracle.com/javase/7/docs/api/java/lang/Thread.html)
-2. [Akka Actors](http://akka.io/)
-3. [Quasar Fibers and Actors](http://docs.paralleluniverse.co/quasar/)
+1. [Standard Java Threads](https://docs.oracle.com/javase/7/docs/api/java/lang/Thread.html)
+2. [Akka Actors](https://akka.io/)
+3. [Quasar Fibers and Actors](https://docs.paralleluniverse.co/quasar/)
+4. [Kilim Fibers](https://github.com/nqzero/kilim)
 
 Usage
 -----

@@ -8,21 +8,21 @@ import org.openjdk.jmh.annotations.Benchmark;
 /**
  * Ring benchmark using Kilim actors.
  */
-public class KilimActorBenchmark extends AbstractRingBenchmark {
+public class KilimActorRingBenchmark extends AbstractRingBenchmark {
 
-    public static class InternalActor extends Task<Integer> {
+    public static class InternalFiber extends Task<Integer> {
 
         private final int id;
 
         private final int[] sequences;
 
-        private InternalActor next;
+        private InternalFiber next;
 
         private volatile boolean waiting = true;
 
         private int sequence;
 
-        private InternalActor(int id, int[] sequences) {
+        private InternalFiber(int id, int[] sequences) {
             this.id = id;
             this.sequences = sequences;
         }
@@ -47,28 +47,28 @@ public class KilimActorBenchmark extends AbstractRingBenchmark {
     @Benchmark
     public int[] ringBenchmark() {
 
-        // Create actors.
+        // Create fibers.
         int[] sequences = new int[workerCount];
-        InternalActor[] actors = new InternalActor[workerCount];
+        InternalFiber[] fibers = new InternalFiber[workerCount];
         for (int workerIndex = 0; workerIndex < workerCount; workerIndex++) {
-            actors[workerIndex] = new InternalActor(workerIndex, sequences);
+            fibers[workerIndex] = new InternalFiber(workerIndex, sequences);
         }
 
-        // Set next actor pointers.
+        // Set next fiber pointers.
         for (int workerIndex = 0; workerIndex < workerCount; workerIndex++) {
-            actors[workerIndex].next = actors[(workerIndex + 1) % workerCount];
+            fibers[workerIndex].next = fibers[(workerIndex + 1) % workerCount];
         }
 
-        // Start actors.
-        for (InternalActor fiber : actors) {
+        // Start fibers.
+        for (InternalFiber fiber : fibers) {
             fiber.start();
         }
 
         // Initiate the ring.
-        InternalActor firstActor = actors[0];
-        firstActor.sequence = ringSize;
-        firstActor.waiting = false;
-        firstActor.resume();
+        InternalFiber firstFiber = fibers[0];
+        firstFiber.sequence = ringSize;
+        firstFiber.waiting = false;
+        firstFiber.resume();
 
         // Wait for workers to complete.
         Task.idledown();
@@ -78,11 +78,11 @@ public class KilimActorBenchmark extends AbstractRingBenchmark {
 
     @SuppressWarnings("unused")     // entrance for Kilim.run()
     public static void kilimEntrace(String[] ignored) {
-        new KilimActorBenchmark().ringBenchmark();
+        new KilimActorRingBenchmark().ringBenchmark();
     }
 
     public static void main(String[] args) throws Exception {
-        Kilim.run("com.vlkan.fibertest.KilimActorBenchmark", "kilimEntrace", args);
+        Kilim.run("com.vlkan.fibertest.KilimActorRingBenchmark", "kilimEntrace", args);
     }
 
 }
