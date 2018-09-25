@@ -8,7 +8,7 @@ import org.openjdk.jmh.annotations.Benchmark;
 /**
  * Ring benchmark using Kilim actors.
  */
-public class KilimActorRingBenchmark extends AbstractRingBenchmark {
+public class KilimFiberRingBenchmark extends AbstractRingBenchmark {
 
     public static class InternalFiber extends Task<Integer> {
 
@@ -78,11 +78,11 @@ public class KilimActorRingBenchmark extends AbstractRingBenchmark {
 
     @SuppressWarnings("unused")     // entrance for Kilim.run()
     public static void kilimEntrace(String[] ignored) {
-        new KilimActorRingBenchmark().ringBenchmark();
+        new KilimFiberRingBenchmark().ringBenchmark();
     }
 
     public static void main(String[] args) throws Exception {
-        Kilim.run("com.vlkan.fibertest.KilimActorRingBenchmark", "kilimEntrace", args);
+        Kilim.run("com.vlkan.fibertest.KilimFiberRingBenchmark", "kilimEntrace", args);
     }
 
 }
