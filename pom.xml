@@ -13,6 +13,7 @@
         <!-- common properties -->
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <quasar.version>0.7.10</quasar.version>
+        <jdk.version>jdk8</jdk.version>
         <java.version>1.8</java.version>
         <scala.version>2.12</scala.version>
 
@@ -21,6 +22,7 @@
         <guava.version>26.0-jre</guava.version>
         <jmh-core.version>1.21</jmh-core.version>
         <junit.version>4.12</junit.version>
+        <kilim.version>2.0.0-23</kilim.version>
         <logback.version>1.2.3</logback.version>
         <slf4j.version>1.7.25</slf4j.version>
         <surefire-junit4.version>2.22.0</surefire-junit4.version>
@@ -84,6 +86,12 @@
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
             <version>${guava.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.db4j</groupId>
+            <artifactId>kilim</artifactId>
+            <version>${kilim.version}</version>
         </dependency>
 
         <dependency>
@@ -169,7 +177,7 @@
                                     <groupId>co.paralleluniverse</groupId>
                                     <artifactId>quasar-core</artifactId>
                                     <version>${quasar.version}</version>
-                                    <classifier>jdk8</classifier>
+                                    <classifier>${jdk.version}</classifier>
                                     <outputDirectory>${project.build.directory}/agents</outputDirectory>
                                     <destFileName>quasar-core.jar</destFileName>
                                 </artifactItem>
