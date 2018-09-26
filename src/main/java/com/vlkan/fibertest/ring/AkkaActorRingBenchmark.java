@@ -1,4 +1,4 @@
-package com.vlkan.fibertest;
+package com.vlkan.fibertest.ring;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;

@@ -1,4 +1,4 @@
-package com.vlkan.fibertest;
+package com.vlkan.fibertest.ring;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -7,11 +7,11 @@ import java.util.Arrays;
 
 import static org.junit.Assert.assertEquals;
 
-enum Util {;
+enum RingBenchmarkTestUtil {;
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(Util.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(RingBenchmarkTestUtil.class);
 
-    static void testRingBenchmark(
+    static void verifyResult(
             int workerCount,
             int ringSize,
             int[] sequences) {

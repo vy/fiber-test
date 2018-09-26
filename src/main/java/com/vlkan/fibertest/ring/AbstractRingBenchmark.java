@@ -1,4 +1,4 @@
-package com.vlkan.fibertest;
+package com.vlkan.fibertest.ring;
 
 import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.State;
@@ -14,8 +14,8 @@ abstract class AbstractRingBenchmark {
     final int ringSize;
 
     AbstractRingBenchmark() {
-        this.workerCount = Integer.parseInt(System.getProperty("workerCount"));
-        this.ringSize = Integer.parseInt(System.getProperty("ringSize"));
+        this.workerCount = Integer.parseInt(System.getProperty("workerCount", "503"));
+        this.ringSize = Integer.parseInt(System.getProperty("ringSize", "1000000"));
     }
 
     abstract public int[] ringBenchmark() throws Exception;

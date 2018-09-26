@@ -1,30 +1,36 @@
-package com.vlkan.fibertest;
+package com.vlkan.fibertest.ring;
 
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.SuspendExecution;
-import co.paralleluniverse.strands.dataflow.Var;
+import co.paralleluniverse.strands.Strand;
 import org.openjdk.jmh.annotations.Benchmark;
 
-public class QuasarDataflowRingBenchmark extends AbstractRingBenchmark {
+public class QuasarFiberRingBenchmark extends AbstractRingBenchmark {
 
     private static class InternalFiber extends Fiber<Integer> {
 
-        private Var<Integer> current = new Var<>();
+        private InternalFiber next;
 
-        private Var<Integer> next;
+        private volatile boolean waiting = true;
+
+        private int sequence;
 
         private InternalFiber(int id) {
             super(String.format("%s-%s-%d",
-                    QuasarChannelRingBenchmark.class.getSimpleName(),
+                    QuasarFiberRingBenchmark.class.getSimpleName(),
                     InternalFiber.class.getSimpleName(), id));
         }
 
         @Override
-        protected Integer run() throws SuspendExecution, InterruptedException {
-            Integer sequence;
+        protected Integer run() throws SuspendExecution {
             do {
-                sequence = current.getNext();
-                next.set(sequence - 1);
+                while (waiting) {
+                    Strand.park();
+                }
+                waiting = true;
+                next.sequence = sequence - 1;
+                next.waiting = false;
+                Strand.unpark(next);
             } while (sequence > 0);
             return sequence;
         }
@@ -43,7 +49,7 @@ public class QuasarDataflowRingBenchmark extends AbstractRingBenchmark {
 
         // Set next fiber pointers.
         for (int workerIndex = 0; workerIndex < workerCount; workerIndex++) {
-            fibers[workerIndex].next = fibers[(workerIndex + 1) % workerCount].current;
+            fibers[workerIndex].next = fibers[(workerIndex + 1) % workerCount];
         }
 
         // Start fibers.
@@ -53,7 +59,9 @@ public class QuasarDataflowRingBenchmark extends AbstractRingBenchmark {
 
         // Initiate the ring.
         InternalFiber first = fibers[0];
-        first.current.set(ringSize);
+        first.sequence = ringSize;
+        first.waiting = false;
+        Strand.unpark(first);
 
         // Wait for fibers to complete.
         int[] sequences = new int[workerCount];
@@ -65,7 +73,7 @@ public class QuasarDataflowRingBenchmark extends AbstractRingBenchmark {
     }
 
     public static void main(String[] args) throws Exception {
-        new QuasarDataflowRingBenchmark().ringBenchmark();
+        new QuasarFiberRingBenchmark().ringBenchmark();
     }
 
 }

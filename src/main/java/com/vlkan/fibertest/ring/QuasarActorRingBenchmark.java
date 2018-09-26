@@ -1,4 +1,4 @@
-package com.vlkan.fibertest;
+package com.vlkan.fibertest.ring;
 
 import co.paralleluniverse.actors.Actor;
 import co.paralleluniverse.actors.ActorRef;

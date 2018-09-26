@@ -1,4 +1,4 @@
-package com.vlkan.fibertest;
+package com.vlkan.fibertest.ring;
 
 import org.junit.Test;
 
@@ -7,7 +7,7 @@ public class QuasarFiberRingBenchmarkTest extends QuasarFiberRingBenchmark {
     @Test
     public void testRingBenchmark() throws Exception {
         int[] sequences = ringBenchmark();
-        Util.testRingBenchmark(workerCount, ringSize, sequences);
+        RingBenchmarkTestUtil.verifyResult(workerCount, ringSize, sequences);
     }
 
 }

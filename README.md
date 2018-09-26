@@ -3,14 +3,13 @@
 This project bundles a set of benchmarks that aims to measure the performance
 of a multitude of threading implementations in the Java Virtual Machine.
 
-Benchmarks
-----------
+# Benchmarks
 
-As of now, there is just a single benchmark (ring) adopted from the
-[Performance Measurements of Threads in Java and Processes in
-Erlang](http://www.sics.se/~joe/ericsson/du98024.html) article. I plan to
-introduce new benchmarks as time allows. That being said, contributions are
-welcome.
+- **Ring**: `N` spawned threads are connected in a ring structure.
+  Through this ring a message (an integer) is circulated `M` times. (Adopted
+  from the [Performance Measurements of Threads in Java and Processes in
+  Erlang](http://web.archive.org/web/20150906052630/https://www.sics.se/%7ejoe/ericsson/du98024.html)
+  article.)
 
 Implementations
 ---------------
@@ -60,7 +59,7 @@ create an all-in-one JAR and run benchmarks individually.
     > -DworkerCount=503 -DringSize=10000000 \
     > -javaagent:/path/to/quasar-core-<version>.jar \
     > -cp target/fiber-test-<version>-jar-with-dependencies.jar \
-    > com.vlkan.fibertest.QuasarFiberRingBenchmark
+    > com.vlkan.fibertest.ring.QuasarFiberRingBenchmark
 
 Results
 -------

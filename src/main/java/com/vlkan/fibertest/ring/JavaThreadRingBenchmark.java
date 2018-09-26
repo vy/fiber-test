@@ -1,4 +1,4 @@
-package com.vlkan.fibertest;
+package com.vlkan.fibertest.ring;
 
 import org.openjdk.jmh.annotations.Benchmark;
 
