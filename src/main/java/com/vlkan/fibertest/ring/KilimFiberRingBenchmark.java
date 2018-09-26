@@ -5,10 +5,13 @@ import kilim.Task;
 import kilim.tools.Kilim;
 import org.openjdk.jmh.annotations.Benchmark;
 
+import static com.vlkan.fibertest.ring.RingBenchmarkConfig.MESSAGE_PASSING_COUNT;
+import static com.vlkan.fibertest.ring.RingBenchmarkConfig.WORKER_COUNT;
+
 /**
  * Ring benchmark using Kilim actors.
  */
-public class KilimFiberRingBenchmark extends AbstractRingBenchmark {
+public class KilimFiberRingBenchmark implements RingBenchmark {
 
     public static class InternalFiber extends Task<Integer> {
 
@@ -48,15 +51,15 @@ public class KilimFiberRingBenchmark extends AbstractRingBenchmark {
     public int[] ringBenchmark() {
 
         // Create fibers.
-        int[] sequences = new int[workerCount];
-        InternalFiber[] fibers = new InternalFiber[workerCount];
-        for (int workerIndex = 0; workerIndex < workerCount; workerIndex++) {
+        int[] sequences = new int[WORKER_COUNT];
+        InternalFiber[] fibers = new InternalFiber[WORKER_COUNT];
+        for (int workerIndex = 0; workerIndex < WORKER_COUNT; workerIndex++) {
             fibers[workerIndex] = new InternalFiber(workerIndex, sequences);
         }
 
         // Set next fiber pointers.
-        for (int workerIndex = 0; workerIndex < workerCount; workerIndex++) {
-            fibers[workerIndex].next = fibers[(workerIndex + 1) % workerCount];
+        for (int workerIndex = 0; workerIndex < WORKER_COUNT; workerIndex++) {
+            fibers[workerIndex].next = fibers[(workerIndex + 1) % WORKER_COUNT];
         }
 
         // Start fibers.
@@ -66,7 +69,7 @@ public class KilimFiberRingBenchmark extends AbstractRingBenchmark {
 
         // Initiate the ring.
         InternalFiber firstFiber = fibers[0];
-        firstFiber.sequence = ringSize;
+        firstFiber.sequence = MESSAGE_PASSING_COUNT;
         firstFiber.waiting = false;
         firstFiber.resume();
 

@@ -4,10 +4,13 @@ import org.openjdk.jmh.annotations.Benchmark;
 
 import java.util.concurrent.locks.LockSupport;
 
+import static com.vlkan.fibertest.ring.RingBenchmarkConfig.MESSAGE_PASSING_COUNT;
+import static com.vlkan.fibertest.ring.RingBenchmarkConfig.WORKER_COUNT;
+
 /**
  * Ring benchmark using Java threads.
  */
-public class JavaThreadRingBenchmark extends AbstractRingBenchmark {
+public class JavaThreadRingBenchmark implements RingBenchmark {
 
     private static class Worker extends Thread {
 
@@ -50,15 +53,15 @@ public class JavaThreadRingBenchmark extends AbstractRingBenchmark {
     public int[] ringBenchmark() throws Exception {
 
         // Create worker threads.
-        int[] sequences = new int[workerCount];
-        Worker[] workers = new Worker[workerCount];
-        for (int workerIndex = 0; workerIndex < workerCount; workerIndex++) {
+        int[] sequences = new int[WORKER_COUNT];
+        Worker[] workers = new Worker[WORKER_COUNT];
+        for (int workerIndex = 0; workerIndex < WORKER_COUNT; workerIndex++) {
             workers[workerIndex] = new Worker(workerIndex, sequences);
         }
 
         // Set next worker thread pointers.
-        for (int workerIndex = 0; workerIndex < workerCount; workerIndex++) {
-            workers[workerIndex].next = workers[(workerIndex + 1) % workerCount];
+        for (int workerIndex = 0; workerIndex < WORKER_COUNT; workerIndex++) {
+            workers[workerIndex].next = workers[(workerIndex + 1) % WORKER_COUNT];
         }
 
         // Start workers.
@@ -68,7 +71,7 @@ public class JavaThreadRingBenchmark extends AbstractRingBenchmark {
 
         // Initiate the ring.
         Worker first = workers[0];
-        first.sequence = ringSize;
+        first.sequence = MESSAGE_PASSING_COUNT;
         first.waiting = false;
         LockSupport.unpark(first);
 

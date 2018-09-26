@@ -5,7 +5,10 @@ import co.paralleluniverse.actors.ActorRef;
 import co.paralleluniverse.fibers.SuspendExecution;
 import org.openjdk.jmh.annotations.Benchmark;
 
-public class QuasarActorRingBenchmark extends AbstractRingBenchmark {
+import static com.vlkan.fibertest.ring.RingBenchmarkConfig.MESSAGE_PASSING_COUNT;
+import static com.vlkan.fibertest.ring.RingBenchmarkConfig.WORKER_COUNT;
+
+public class QuasarActorRingBenchmark implements RingBenchmark {
 
     private static class InternalActor extends Actor<Integer, Integer> {
 
@@ -34,25 +37,25 @@ public class QuasarActorRingBenchmark extends AbstractRingBenchmark {
     public int[] ringBenchmark() throws Exception {
 
         // Create and start actors.
-        InternalActor[] actors = new InternalActor[workerCount];
-        ActorRef<Integer>[] actorRefs = new ActorRef[workerCount];
-        for (int workerIndex = 0; workerIndex < workerCount; workerIndex++) {
+        InternalActor[] actors = new InternalActor[WORKER_COUNT];
+        @SuppressWarnings("unchecked") ActorRef<Integer>[] actorRefs = new ActorRef[WORKER_COUNT];
+        for (int workerIndex = 0; workerIndex < WORKER_COUNT; workerIndex++) {
             InternalActor actor = new InternalActor(workerIndex);
             actors[workerIndex] = actor;
             actorRefs[workerIndex] = actor.spawn();
         }
 
         // Set next actor pointers.
-        for (int workerIndex = 0; workerIndex < workerCount; workerIndex++) {
-            actors[workerIndex].next = actorRefs[(workerIndex + 1) % workerCount];
+        for (int workerIndex = 0; workerIndex < WORKER_COUNT; workerIndex++) {
+            actors[workerIndex].next = actorRefs[(workerIndex + 1) % WORKER_COUNT];
         }
 
         // Initiate the ring.
-        actorRefs[0].send(ringSize);
+        actorRefs[0].send(MESSAGE_PASSING_COUNT);
 
         // Wait for actors to finish and collect the results.
-        int[] sequences = new int[workerCount];
-        for (int workerIndex = 0; workerIndex < workerCount; workerIndex++) {
+        int[] sequences = new int[WORKER_COUNT];
+        for (int workerIndex = 0; workerIndex < WORKER_COUNT; workerIndex++) {
             sequences[workerIndex] = actors[workerIndex].get();
         }
         return sequences;

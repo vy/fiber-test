@@ -17,13 +17,15 @@ import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import static com.vlkan.fibertest.ring.RingBenchmarkConfig.*;
+
 /**
  * Ring benchmark using Akka actors.
  *
  * Internally actors use a {@link scala.concurrent.Promise} to
  * notify the completion of the ring.
  */
-public class AkkaActorRingBenchmark extends AbstractRingBenchmark {
+public class AkkaActorRingBenchmark implements RingBenchmark {
 
     /** @noinspection deprecation (easier to use in Java) */
     private static class InternalActor extends UntypedActor {
@@ -66,9 +68,9 @@ public class AkkaActorRingBenchmark extends AbstractRingBenchmark {
         ActorSystem system = ActorSystem.create(AkkaActorRingBenchmark.class.getSimpleName() + "System");
 
         // Create actors.
-        List<Future<Integer>> futures = new ArrayList<>(workerCount);
-        ActorRef[] actors = new ActorRef[workerCount];
-        for (int workerIndex = 0; workerIndex < workerCount; workerIndex++) {
+        List<Future<Integer>> futures = new ArrayList<>(WORKER_COUNT);
+        ActorRef[] actors = new ActorRef[WORKER_COUNT];
+        for (int workerIndex = 0; workerIndex < WORKER_COUNT; workerIndex++) {
             Promise<Integer> promise = Futures.promise();
             futures.add(promise.future());
             Props actorProps = Props.create(InternalActor.class, workerIndex, promise);
@@ -79,12 +81,12 @@ public class AkkaActorRingBenchmark extends AbstractRingBenchmark {
         }
 
         // Set next actor pointers.
-        for (int workerIndex = 0; workerIndex < workerCount; workerIndex++) {
-            actors[workerIndex].tell(actors[(workerIndex + 1) % workerCount], null);
+        for (int workerIndex = 0; workerIndex < WORKER_COUNT; workerIndex++) {
+            actors[workerIndex].tell(actors[(workerIndex + 1) % WORKER_COUNT], null);
         }
 
         // Initiate the ring.
-        actors[0].tell(ringSize, null);
+        actors[0].tell(MESSAGE_PASSING_COUNT, null);
 
         // Wait for the latch.
         Iterable<Integer> sequences = Await.result(

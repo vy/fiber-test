@@ -5,7 +5,10 @@ import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.Strand;
 import org.openjdk.jmh.annotations.Benchmark;
 
-public class QuasarFiberRingBenchmark extends AbstractRingBenchmark {
+import static com.vlkan.fibertest.ring.RingBenchmarkConfig.MESSAGE_PASSING_COUNT;
+import static com.vlkan.fibertest.ring.RingBenchmarkConfig.WORKER_COUNT;
+
+public class QuasarFiberRingBenchmark implements RingBenchmark {
 
     private static class InternalFiber extends Fiber<Integer> {
 
@@ -42,14 +45,14 @@ public class QuasarFiberRingBenchmark extends AbstractRingBenchmark {
     public int[] ringBenchmark() throws Exception {
 
         // Create fibers.
-        InternalFiber[] fibers = new InternalFiber[workerCount];
-        for (int workerIndex = 0; workerIndex < workerCount; workerIndex++) {
+        InternalFiber[] fibers = new InternalFiber[WORKER_COUNT];
+        for (int workerIndex = 0; workerIndex < WORKER_COUNT; workerIndex++) {
             fibers[workerIndex] = new InternalFiber(workerIndex);
         }
 
         // Set next fiber pointers.
-        for (int workerIndex = 0; workerIndex < workerCount; workerIndex++) {
-            fibers[workerIndex].next = fibers[(workerIndex + 1) % workerCount];
+        for (int workerIndex = 0; workerIndex < WORKER_COUNT; workerIndex++) {
+            fibers[workerIndex].next = fibers[(workerIndex + 1) % WORKER_COUNT];
         }
 
         // Start fibers.
@@ -59,13 +62,13 @@ public class QuasarFiberRingBenchmark extends AbstractRingBenchmark {
 
         // Initiate the ring.
         InternalFiber first = fibers[0];
-        first.sequence = ringSize;
+        first.sequence = MESSAGE_PASSING_COUNT;
         first.waiting = false;
         Strand.unpark(first);
 
         // Wait for fibers to complete.
-        int[] sequences = new int[workerCount];
-        for (int workerIndex = 0; workerIndex < workerCount; workerIndex++) {
+        int[] sequences = new int[WORKER_COUNT];
+        for (int workerIndex = 0; workerIndex < WORKER_COUNT; workerIndex++) {
             sequences[workerIndex] = fibers[workerIndex].get();
         }
         return sequences;

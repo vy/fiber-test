@@ -9,7 +9,7 @@ public class KilimFiberRingBenchmarkTest {
     public static void kilimEntrance(String[] ignored) {
         KilimFiberRingBenchmark benchmark = new KilimFiberRingBenchmark();
         int[] sequences = benchmark.ringBenchmark();
-        RingBenchmarkTestUtil.verifyResult(benchmark.workerCount, benchmark.ringSize, sequences);
+        RingBenchmarkTestUtil.verifyResult(sequences);
     }
 
     @Test

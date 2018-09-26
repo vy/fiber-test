@@ -9,15 +9,15 @@ findCpuList() {
     echo "0-$maxCpuIndex"
 }
 
-[ -z "$workerCount" ] && workerCount=503
-[ -z "$ringSize" ] && ringSize=1000000
+[ -z "$ring_workerCount" ] && ring_workerCount=503
+[ -z "$ring_messagePassingCount" ] && ring_messagePassingCount=1000000
 [ -z "$cpuList" ] && cpuList=$(findCpuList)
 
 if [ "$1" = "-h" -o "$1" = "--help" ]; then
     echo "Available parameters (with defaults):"
-    echo "    workerCount ($workerCount)"
-    echo "    ringSize    ($ringSize)"
-    echo "    cpuList     ($cpuList)"
+    echo "    ring_workerCount ($ring_workerCount)"
+    echo "    ring_messagePassingCount ($ring_messagePassingCount)"
+    echo "    cpuList ($cpuList)"
     exit 0
 fi
 
@@ -44,7 +44,7 @@ artifactId=$( \
     head -n 1 | \
     sed -r 's/.*<artifactId>(.*)<\/artifactId>/\1/g')
 uberJar=$(requireFile \
-    "Uber JAR, run \"mvn install\" first" \
+    "Uber JAR, run \"mvn package\" first" \
     "$projDir/target/$artifactId.jar")
 quasarJar="$projDir/target/agents/quasar-core.jar"
 
@@ -52,7 +52,10 @@ cmd="taskset -c $cpuList \
 $JAVA_HOME/bin/java \
 -server -XX:+TieredCompilation -XX:+AggressiveOpts \
 -jar \"$uberJar\" \
--jvmArgsAppend \"-DworkerCount=$workerCount -DringSize=$ringSize -javaagent:$quasarJar\" \
+-jvmArgsAppend \"\
+-Dring.workerCount=$ring_workerCount \
+-Dring.messagePassingCount=$ring_messagePassingCount \
+-javaagent:$quasarJar\" \
 -wi 5 -i 10 -bm avgt -tu ms -f 5 \".*RingBenchmark.*\""
 echo "$cmd"
 eval "$cmd"
