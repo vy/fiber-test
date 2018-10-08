@@ -1,18 +1,17 @@
 package com.vlkan.fibertest;
 
+import kilim.Cell;
 import kilim.ForkJoinScheduler;
 import kilim.Pausable;
-import kilim.PauseReason;
 import kilim.Scheduler;
 import kilim.Task;
 import kilim.tools.Kilim;
 import org.openjdk.jmh.annotations.Benchmark;
 
 /**
- * Ring benchmark using Kilim tasks and via pause and resume.
+ * Ring benchmark using Kilim tasks and message passing, ie the Kilim metaphor for an actor.
  */
-public class KilimFiberRingBenchmark extends AbstractRingBenchmark {
-    static PauseReason always = t -> true;
+public class KilimActorRingBenchmark extends AbstractRingBenchmark {
     static Scheduler affine;
     Scheduler sched;
 
@@ -34,7 +33,8 @@ public class KilimFiberRingBenchmark extends AbstractRingBenchmark {
         private final int[] sequences;
         private InternalFiber next;
         private int sequence;
-        private int setter;
+        private Cell<Integer> box = new Cell();
+        
 
         private InternalFiber(int id, int[] sequences, Scheduler sched) {
             this.sid = id;
@@ -44,28 +44,17 @@ public class KilimFiberRingBenchmark extends AbstractRingBenchmark {
 
         @Override
         public void execute() throws Pausable {
-            while (true) {
-                next.setter = setter - 1;
-                sequence = setter;
-                next.schedule();
-                if (sequence <= 0)
-                    break;
-                Task.pause(always);
-            }
+            do {
+                sequence = box.get();
+                next.box.putnb(sequence - 1);
+            } while (sequence > 0);
             sequences[sid] = sequence;
-        }
-        void schedule() {
-            while (! done && ! resume())
-                try { nretry++; Thread.sleep(0); } catch (InterruptedException ex) {}
         }
         void awaitb() {
             if (! done) joinb();
         }
     }
 
-    static int nretry;
-    
-    
     @Override
     @Benchmark
     public int[] ringBenchmark() {
@@ -83,11 +72,15 @@ public class KilimFiberRingBenchmark extends AbstractRingBenchmark {
             fibers[workerIndex].next = fibers[(workerIndex + 1) % workerCount];
         }
 
+        // Start fibers.
+        for (InternalFiber fiber : fibers) {
+            fiber.start();
+        }
+
         // Initiate the ring.
         InternalFiber firstFiber = fibers[0];
-        firstFiber.setter = ringSize;
-        firstFiber.schedule();
-
+        firstFiber.box.putnb(ringSize);
+        
         fibers[workerCount-1].awaitb();
         for (int ii=0; ii < workerCount; ii++)
             fibers[ii].awaitb();
@@ -98,20 +91,20 @@ public class KilimFiberRingBenchmark extends AbstractRingBenchmark {
 
     // allow trampoline detection
     static void dummy() throws Pausable {}    
-    
+
     public static void main(String[] args) throws Exception {
         if (Kilim.trampoline(true,args)) return;
         int num = 1;
         if (args.length > 0) num = Integer.parseInt(args[0]);
         for (int ii=0; ii < num; ii++) {
-            nretry = 0;
             int [] seqs = null;
-            if (args.length > 2) seqs = new KilimFiberRingBenchmark().ringBenchmark();
-            else                 seqs = new KilimFiberRingBenchmark.Fork().ringBenchmark();
-            System.out.format("seq: %5d, retry: %5d\n",seqs[0],nretry);
+            if (args.length > 2) seqs = new KilimActorRingBenchmark().ringBenchmark();
+            else                 seqs = new KilimActorRingBenchmark.Fork().ringBenchmark();
+            System.out.format("seq: %5d\n",seqs[0]);
             if (args.length > 1)
                 Thread.sleep(Integer.parseInt(args[1]));
         }
     }
+
 
 }
