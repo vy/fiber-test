@@ -76,6 +76,15 @@ AkkaActorRingBenchmark.ringBenchmark       avgt   50   892,533 ±  50,865  ms/op
 QuasarFiberRingBenchmark.ringBenchmark     avgt   50   832,529 ±  47,586  ms/op
 ```
 
+for `Java(TM) SE Runtime Environment (build 1.8.0_121-b13)` running on `Intel(R) Core(TM) i3-2105 CPU @ 3.10GHz` on `Linux 4.4.0-138-generic x86_64` kernel:
+```
+KilimActorRingBenchmark.Fork.ringBenchmark    avgt    4  656.668 ± 1488.584  ms/op
+KilimActorRingBenchmark.ringBenchmark         avgt    4  492.612 ±   57.829  ms/op
+KilimContinuationRingBenchmark.ringBenchmark  avgt    4   34.866 ±    3.135  ms/op
+KilimFiberRingBenchmark.Fork.ringBenchmark    avgt    4  493.886 ±  218.133  ms/op
+KilimFiberRingBenchmark.ringBenchmark         avgt    4  402.553 ±   97.912  ms/op
+```
+
 License
 -------
 
