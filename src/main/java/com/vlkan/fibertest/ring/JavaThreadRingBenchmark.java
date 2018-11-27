@@ -8,7 +8,7 @@ import static com.vlkan.fibertest.ring.RingBenchmarkConfig.MESSAGE_PASSING_COUNT
 import static com.vlkan.fibertest.ring.RingBenchmarkConfig.WORKER_COUNT;
 
 /**
- * Ring benchmark using Java threads.
+ * Ring benchmark using Java {@link Thread}s.
  */
 public class JavaThreadRingBenchmark implements RingBenchmark {
 
@@ -79,6 +79,8 @@ public class JavaThreadRingBenchmark implements RingBenchmark {
         for (Worker worker : workers) {
             worker.join();
         }
+
+        // Return populated sequences.
         return sequences;
 
     }

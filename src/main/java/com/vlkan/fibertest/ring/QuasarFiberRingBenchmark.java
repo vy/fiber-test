@@ -8,6 +8,9 @@ import org.openjdk.jmh.annotations.Benchmark;
 import static com.vlkan.fibertest.ring.RingBenchmarkConfig.MESSAGE_PASSING_COUNT;
 import static com.vlkan.fibertest.ring.RingBenchmarkConfig.WORKER_COUNT;
 
+/**
+ * Ring benchmark using Quasar {@link Fiber}s.
+ */
 public class QuasarFiberRingBenchmark implements RingBenchmark {
 
     private static class InternalFiber extends Fiber<Integer> {
@@ -61,16 +64,18 @@ public class QuasarFiberRingBenchmark implements RingBenchmark {
         }
 
         // Initiate the ring.
-        InternalFiber first = fibers[0];
-        first.sequence = MESSAGE_PASSING_COUNT;
-        first.waiting = false;
-        Strand.unpark(first);
+        InternalFiber firstFiber = fibers[0];
+        firstFiber.sequence = MESSAGE_PASSING_COUNT;
+        firstFiber.waiting = false;
+        Strand.unpark(firstFiber);
 
         // Wait for fibers to complete.
         int[] sequences = new int[WORKER_COUNT];
         for (int workerIndex = 0; workerIndex < WORKER_COUNT; workerIndex++) {
             sequences[workerIndex] = fibers[workerIndex].get();
         }
+
+        // Return populated sequences.
         return sequences;
 
     }

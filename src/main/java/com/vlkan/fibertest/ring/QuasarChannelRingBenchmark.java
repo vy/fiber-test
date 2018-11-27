@@ -9,11 +9,14 @@ import org.openjdk.jmh.annotations.Benchmark;
 import static com.vlkan.fibertest.ring.RingBenchmarkConfig.MESSAGE_PASSING_COUNT;
 import static com.vlkan.fibertest.ring.RingBenchmarkConfig.WORKER_COUNT;
 
+/**
+ * Ring benchmark using Quasar {@link Fiber}s with {@link co.paralleluniverse.strands.channels.Channel}s.
+ */
 public class QuasarChannelRingBenchmark implements RingBenchmark {
 
     private static class InternalFiber extends Fiber<Integer> {
 
-        private IntChannel subscriberChannel = Channels.newIntChannel(10000);
+        private IntChannel subscriberChannel = Channels.newIntChannel(10_000);
 
         private IntChannel publisherChannel;
 
@@ -65,6 +68,8 @@ public class QuasarChannelRingBenchmark implements RingBenchmark {
         for (int workerIndex = 0; workerIndex < WORKER_COUNT; workerIndex++) {
             sequences[workerIndex] = fibers[workerIndex].get();
         }
+
+        // Return populated sequences.
         return sequences;
 
     }

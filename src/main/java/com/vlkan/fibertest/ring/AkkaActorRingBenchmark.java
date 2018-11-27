@@ -20,10 +20,7 @@ import java.util.concurrent.TimeUnit;
 import static com.vlkan.fibertest.ring.RingBenchmarkConfig.*;
 
 /**
- * Ring benchmark using Akka actors.
- *
- * Internally actors use a {@link scala.concurrent.Promise} to
- * notify the completion of the ring.
+ * Ring benchmark using Akka {@link akka.actor.Actor}s.
  */
 public class AkkaActorRingBenchmark implements RingBenchmark {
 
@@ -92,7 +89,11 @@ public class AkkaActorRingBenchmark implements RingBenchmark {
         Iterable<Integer> sequences = Await.result(
                 Futures.sequence(futures, system.dispatcher()),
                 Duration.apply(10, TimeUnit.MINUTES));
+
+        // Shutdown actors.
         system.terminate();
+
+        // Return populated sequences.
         return Ints.toArray((Collection<Integer>) sequences);
 
     }

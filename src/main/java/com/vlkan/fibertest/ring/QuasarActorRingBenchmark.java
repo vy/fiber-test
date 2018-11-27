@@ -8,6 +8,9 @@ import org.openjdk.jmh.annotations.Benchmark;
 import static com.vlkan.fibertest.ring.RingBenchmarkConfig.MESSAGE_PASSING_COUNT;
 import static com.vlkan.fibertest.ring.RingBenchmarkConfig.WORKER_COUNT;
 
+/**
+ * Ring benchmark using Quasar {@link Actor}s.
+ */
 public class QuasarActorRingBenchmark implements RingBenchmark {
 
     private static class InternalActor extends Actor<Integer, Integer> {
@@ -58,6 +61,8 @@ public class QuasarActorRingBenchmark implements RingBenchmark {
         for (int workerIndex = 0; workerIndex < WORKER_COUNT; workerIndex++) {
             sequences[workerIndex] = actors[workerIndex].get();
         }
+
+        // Return populated sequences.
         return sequences;
 
     }
