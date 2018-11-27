@@ -64,15 +64,19 @@ create an all-in-one JAR and run benchmarks individually.
 Results
 -------
 
-For `Oracle Java 1.8.0_60-b27` running on `Intel(R) Core(TM) i7-4702MQ CPU @ 2.20GHz` on `Linux 3.13.0-63-generic x86_64` kernel:
+For `Oracle Java 1.8.0_121-b13` running on `Intel(R) Core(TM) i3-2105 CPU @ 3.10GHz` on `Linux 4.4.0-137-generic x86_64` kernel:
 
 ```
-JavaThreadRingBenchmark.ringBenchmark      avgt   50  7741,274 ± 476,113  ms/op
-QuasarActorRingBenchmark.ringBenchmark     avgt   50  1702,764 ±  65,940  ms/op
-QuasarDataflowRingBenchmark.ringBenchmark  avgt   50  1512,901 ±  55,922  ms/op
-QuasarChannelRingBenchmark.ringBenchmark   avgt   50  1417,803 ±  49,837  ms/op
-AkkaActorRingBenchmark.ringBenchmark       avgt   50   892,533 ±  50,865  ms/op
-QuasarFiberRingBenchmark.ringBenchmark     avgt   50   832,529 ±  47,586  ms/op
+Benchmark                                     Mode  Cnt     Score      Error  Units
+AkkaActorRingBenchmark.ringBenchmark          avgt    4   614.755 ±  151.874  ms/op
+JavaThreadRingBenchmark.ringBenchmark         avgt    4  6126.367 ±  304.880  ms/op
+KilimActorRingBenchmark.ringBenchmark         avgt    4   611.655 ±  128.317  ms/op
+KilimContinuationRingBenchmark.ringBenchmark  avgt    4    45.544 ±   11.303  ms/op
+KilimFiberRingBenchmark.ringBenchmark         avgt    4   441.433 ±   61.134  ms/op
+QuasarActorRingBenchmark.ringBenchmark        avgt    4  2627.271 ± 2114.870  ms/op
+QuasarChannelRingBenchmark.ringBenchmark      avgt    4  1589.085 ±  819.561  ms/op
+QuasarDataflowRingBenchmark.ringBenchmark     avgt    4  1866.151 ±  302.077  ms/op
+QuasarFiberRingBenchmark.ringBenchmark        avgt    4   666.120 ±  148.967  ms/op
 ```
 
 License

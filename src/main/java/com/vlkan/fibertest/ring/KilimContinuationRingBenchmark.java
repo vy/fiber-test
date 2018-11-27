@@ -1,53 +1,48 @@
 package com.vlkan.fibertest.ring;
 
+import kilim.Continuation;
+import kilim.Fiber;
 import kilim.Pausable;
-import kilim.PauseReason;
-import kilim.Scheduler;
-import kilim.Task;
 import kilim.tools.Kilim;
 import org.openjdk.jmh.annotations.Benchmark;
+
+import java.util.LinkedList;
+import java.util.Queue;
 
 import static com.vlkan.fibertest.ring.RingBenchmarkConfig.MESSAGE_PASSING_COUNT;
 import static com.vlkan.fibertest.ring.RingBenchmarkConfig.WORKER_COUNT;
 
 /**
- * Ring benchmark using Kilim {@link Task}s with pause-and-resume.
+ * Ring benchmark using Kilim {@link Continuation}s.
  */
-public class KilimFiberRingBenchmark implements RingBenchmark {
+public class KilimContinuationRingBenchmark implements RingBenchmark {
 
-    static {
-        Scheduler.defaultNumberThreads = 1;
-    }
-
-    private static final PauseReason PAUSE_REASON = task -> true;
-
-    private static class Worker extends Task<Integer> {
+    private static class Worker extends Continuation {
 
         private final int _id;
 
         private final int[] sequences;
 
+        private final Queue<Continuation> continuations;
+
         private Worker next;
 
         private int sequence;
 
-        private Worker(int id, int[] sequences) {
+        private Worker(int id, int[] sequences, Queue<Continuation> continuations) {
             this._id = id;
             this.sequences = sequences;
+            this.continuations = continuations;
         }
 
         @Override
         public void execute() throws Pausable {
             do {
-                Task.pause(PAUSE_REASON);
+                Fiber.yield();
                 next.sequence = sequence - 1;
-                next.resume();
+                continuations.add(next);
             } while (sequence > 0);
             sequences[_id] = sequence;
-        }
-
-        boolean started() {
-            return running.get();
         }
 
     }
@@ -59,8 +54,9 @@ public class KilimFiberRingBenchmark implements RingBenchmark {
         // Create workers.
         int[] sequences = new int[WORKER_COUNT];
         Worker[] workers = new Worker[WORKER_COUNT];
+        LinkedList<Continuation> continuations = new LinkedList<>();
         for (int workerIndex = 0; workerIndex < WORKER_COUNT; workerIndex++) {
-            workers[workerIndex] = new Worker(workerIndex, sequences);
+            workers[workerIndex] = new Worker(workerIndex, sequences, continuations);
         }
 
         // Set next worker pointers.
@@ -70,43 +66,31 @@ public class KilimFiberRingBenchmark implements RingBenchmark {
 
         // Start workers.
         for (Worker worker : workers) {
-            worker.start();
-        }
-
-        // Wait for workers to start.
-        for (Worker worker : workers) {
-            while (worker.started()) {
-                try {
-                    Thread.sleep(1);
-                } catch (InterruptedException ignored) {
-                    Thread.currentThread().interrupt();
-                }
-            }
+            worker.run();
         }
 
         // Initiate the ring.
         Worker firstWorker = workers[0];
         firstWorker.sequence = MESSAGE_PASSING_COUNT;
-        firstWorker.resume();
-        for (int workerIndex = 0; workerIndex < WORKER_COUNT; workerIndex++) {
-            workers[workerIndex].joinb();
+        continuations.add(firstWorker);
+
+        // Execute scheduled continuations.
+        for (Continuation continuation; (continuation = continuations.pollFirst()) != null;) {
+            continuation.run();
         }
 
-        // Shutdown scheduler.
-        Scheduler.getDefaultScheduler().shutdown();
-
-        // Return collected sequences.
+        // Return populated sequences.
         return sequences;
 
     }
 
     @SuppressWarnings("unused")     // entrance for Kilim.run()
     public static void kilimEntrace(String[] ignored) {
-        new KilimFiberRingBenchmark().ringBenchmark();
+        new KilimContinuationRingBenchmark().ringBenchmark();
     }
 
     public static void main(String[] args) throws Exception {
-        Kilim.run("com.vlkan.fibertest.ring.KilimFiberRingBenchmark", "kilimEntrace", args);
+        Kilim.run("com.vlkan.fibertest.ring.KilimContinuationRingBenchmark", "kilimEntrace", args);
     }
 
 }

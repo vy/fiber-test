@@ -1,7 +1,7 @@
 package com.vlkan.fibertest.ring;
 
+import kilim.Cell;
 import kilim.Pausable;
-import kilim.PauseReason;
 import kilim.Scheduler;
 import kilim.Task;
 import kilim.tools.Kilim;
@@ -11,15 +11,13 @@ import static com.vlkan.fibertest.ring.RingBenchmarkConfig.MESSAGE_PASSING_COUNT
 import static com.vlkan.fibertest.ring.RingBenchmarkConfig.WORKER_COUNT;
 
 /**
- * Ring benchmark using Kilim {@link Task}s with pause-and-resume.
+ * Ring benchmark using Kilim {@link Task}s with message passing.
  */
-public class KilimFiberRingBenchmark implements RingBenchmark {
+public class KilimActorRingBenchmark implements RingBenchmark {
 
     static {
         Scheduler.defaultNumberThreads = 1;
     }
-
-    private static final PauseReason PAUSE_REASON = task -> true;
 
     private static class Worker extends Task<Integer> {
 
@@ -31,6 +29,8 @@ public class KilimFiberRingBenchmark implements RingBenchmark {
 
         private int sequence;
 
+        private Cell<Integer> box = new Cell<>();
+
         private Worker(int id, int[] sequences) {
             this._id = id;
             this.sequences = sequences;
@@ -39,15 +39,10 @@ public class KilimFiberRingBenchmark implements RingBenchmark {
         @Override
         public void execute() throws Pausable {
             do {
-                Task.pause(PAUSE_REASON);
-                next.sequence = sequence - 1;
-                next.resume();
+                sequence = box.get();
+                next.box.putnb(sequence - 1);
             } while (sequence > 0);
             sequences[_id] = sequence;
-        }
-
-        boolean started() {
-            return running.get();
         }
 
     }
@@ -73,40 +68,25 @@ public class KilimFiberRingBenchmark implements RingBenchmark {
             worker.start();
         }
 
-        // Wait for workers to start.
-        for (Worker worker : workers) {
-            while (worker.started()) {
-                try {
-                    Thread.sleep(1);
-                } catch (InterruptedException ignored) {
-                    Thread.currentThread().interrupt();
-                }
-            }
-        }
-
         // Initiate the ring.
         Worker firstWorker = workers[0];
-        firstWorker.sequence = MESSAGE_PASSING_COUNT;
-        firstWorker.resume();
-        for (int workerIndex = 0; workerIndex < WORKER_COUNT; workerIndex++) {
-            workers[workerIndex].joinb();
-        }
+        firstWorker.box.putnb(MESSAGE_PASSING_COUNT);
 
-        // Shutdown scheduler.
-        Scheduler.getDefaultScheduler().shutdown();
+        // Wait for scheduler to finish and shut it down.
+        Task.idledown();
 
-        // Return collected sequences.
+        // Return populated sequences.
         return sequences;
 
     }
 
     @SuppressWarnings("unused")     // entrance for Kilim.run()
     public static void kilimEntrace(String[] ignored) {
-        new KilimFiberRingBenchmark().ringBenchmark();
+        new KilimActorRingBenchmark().ringBenchmark();
     }
 
     public static void main(String[] args) throws Exception {
-        Kilim.run("com.vlkan.fibertest.ring.KilimFiberRingBenchmark", "kilimEntrace", args);
+        Kilim.run("com.vlkan.fibertest.ring.KilimActorRingBenchmark", "kilimEntrace", args);
     }
 
 }

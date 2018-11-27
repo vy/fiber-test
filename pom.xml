@@ -22,7 +22,7 @@
         <guava.version>26.0-jre</guava.version>
         <jmh-core.version>1.21</jmh-core.version>
         <junit.version>4.12</junit.version>
-        <kilim.version>2.0.0-23</kilim.version>
+        <kilim.version>2.0.0-28</kilim.version>
         <logback.version>1.2.3</logback.version>
         <slf4j.version>1.7.25</slf4j.version>
         <surefire-junit4.version>2.22.0</surefire-junit4.version>
@@ -198,6 +198,19 @@
                         <ringSize>130</ringSize>
                     </systemPropertyVariables>
                 </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>org.db4j</groupId>
+                <artifactId>kilim</artifactId>
+                <version>${kilim.version}</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>weave</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
 
         </plugins>
