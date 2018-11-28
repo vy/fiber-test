@@ -1,0 +1,176 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <artifactId>fiber-test</artifactId>
+        <groupId>com.vlkan</groupId>
+        <version>1.0-SNAPSHOT</version>
+        <relativePath>..</relativePath>
+    </parent>
+
+    <artifactId>fiber-test-java-loom</artifactId>
+
+    <properties>
+        <jdk.download.directory>${project.build.directory}/openjdk-loom</jdk.download.directory>
+        <java.home>${jdk.download.directory}/jdk</java.home>
+        <java.version>12</java.version>
+    </properties>
+
+    <dependencies>
+
+        <dependency>
+            <groupId>com.vlkan</groupId>
+            <artifactId>fiber-test-common</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+    </dependencies>
+
+    <build>
+        <plugins>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <compilerVersion>${java.version}</compilerVersion>
+                    <source>${java.version}</source>
+                    <target>${java.version}</target>
+                    <release>${java.version}</release>
+                    <compilerArgs>
+                        <arg>-Xlint:unchecked</arg>
+                    </compilerArgs>
+                    <showDeprecation>true</showDeprecation>
+                    <showWarnings>true</showWarnings>
+                    <executable>${java.home}/bin/javac</executable>
+                    <fork>true</fork>
+                </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <jvm>${java.home}/bin/java</jvm>
+                    <forkMode>once</forkMode>
+                </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                        <configuration>
+                            <finalName>${project.artifactId}</finalName>
+                            <transformers>
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                                    <mainClass>org.openjdk.jmh.Main</mainClass>
+                                </transformer>
+                            </transformers>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+        </plugins>
+    </build>
+
+    <profiles>
+        <profile>
+
+            <id>jdk-installer</id>
+
+            <activation>
+                <file>
+                    <!-- Property interpolation is not supported in file-based activations (see
+                         https://maven.apache.org/guides/introduction/introduction-to-profiles.html),
+                         hence we are hardcoding the pathname. -->
+                    <missing>./target/openjdk-loom/jdk</missing>
+                </file>
+            </activation>
+
+            <properties>
+                <jdk.compressed.filename>openjdk-loom-latest-linux-x86_64-release.tar.xz</jdk.compressed.filename>
+                <jdk.download.uri>https://builds.shipilev.net/openjdk-loom/${jdk.compressed.filename}</jdk.download.uri>
+            </properties>
+
+            <build>
+                <plugins>
+
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-antrun-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <phase>generate-resources</phase>
+                                <goals>
+                                    <goal>run</goal>
+                                </goals>
+                                <configuration>
+                                    <tasks>
+                                        <echo>JDK is missing, gonna download and extract...</echo>
+                                        <echo>java.home = ${java.home}</echo>
+                                        <echo>jdk.download.uri = ${jdk.download.uri}</echo>
+                                    </tasks>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+
+                    <plugin>
+                        <groupId>com.googlecode.maven-download-plugin</groupId>
+                        <artifactId>download-maven-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>download-openjdk-loom</id>
+                                <phase>generate-resources</phase>
+                                <goals>
+                                    <goal>wget</goal>
+                                </goals>
+                                <configuration>
+                                    <url>https://builds.shipilev.net/openjdk-loom/${jdk.compressed.filename}</url>
+                                    <unpack>false</unpack> <!-- XZ format is not supported. -->
+                                    <outputDirectory>${jdk.download.directory}</outputDirectory>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>exec-maven-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <phase>generate-resources</phase>
+                                <goals>
+                                    <goal>exec</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                        <configuration>
+                            <executable>tar</executable>
+                            <workingDirectory>${jdk.download.directory}</workingDirectory>
+                            <arguments>
+                                <argument>-Jxf</argument>
+                                <argument>${jdk.compressed.filename}</argument>
+                            </arguments>
+                        </configuration>
+                    </plugin>
+
+                </plugins>
+
+            </build>
+
+        </profile>
+    </profiles>
+
+</project>

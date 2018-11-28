@@ -16,17 +16,18 @@ Implementations
 
 Project employs 3 threading libraries to implement fibers in the benchmarks.
 
-1. [Standard Java Threads](https://docs.oracle.com/javase/7/docs/api/java/lang/Thread.html)
+1. [Standard Java Threads](https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/Thread.html)
 2. [Akka Actors](https://akka.io/)
 3. [Quasar Fibers and Actors](https://docs.paralleluniverse.co/quasar/)
-4. [Kilim Fibers](https://github.com/nqzero/kilim)
+4. [Kilim Actors, Continuations, and Fibers](https://github.com/kilim/kilim)
+5. [Project Loom Fibers](https://openjdk.java.net/projects/loom/)
 
 Usage
 -----
 
 You first need to build the JMH Uber JAR using Maven.
 
-    $ mvn clean package
+    $ JAVA_11_HOME=/path/to/java-11/home mvn package
 
 Next, you can either use the provided `benchmark.sh` script
 
@@ -78,6 +79,12 @@ QuasarChannelRingBenchmark.ringBenchmark      avgt    4  1589.085 ±  819.561  m
 QuasarDataflowRingBenchmark.ringBenchmark     avgt    4  1866.151 ±  302.077  ms/op
 QuasarFiberRingBenchmark.ringBenchmark        avgt    4   666.120 ±  148.967  ms/op
 ```
+
+Contributors
+------------
+
+- [Arek Burdach](https://github.com/arkadius)
+- [Seth Lytle](https://github.com/nqzero)
 
 License
 -------
