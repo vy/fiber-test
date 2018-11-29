@@ -22,10 +22,7 @@
 
         <!-- common properties -->
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-
-        <!-- JDK versions -->
-        <java11.home>${env.JAVA_11_HOME}</java11.home>
-        <java11.version>11</java11.version>
+        <java.version>11</java.version>
 
         <!-- library versions -->
         <akka.version>2.5.18</akka.version>
@@ -110,34 +107,14 @@
     </dependencyManagement>
 
     <build>
-
-        <plugins>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-enforcer-plugin</artifactId>
-                <version>${maven-enforcer-plugin.version}</version>
-                <executions>
-                    <execution>
-                        <id>check-env-vars</id>
-                        <goals>
-                            <goal>enforce</goal>
-                        </goals>
-                        <configuration>
-                            <rules>
-                                <requireEnvironmentVariable>
-                                    <variableName>JAVA_11_HOME</variableName>
-                                </requireEnvironmentVariable>
-                            </rules>
-                            <fail>true</fail>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-        </plugins>
-
         <pluginManagement>
-
             <plugins>
+
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-enforcer-plugin</artifactId>
+                    <version>${maven-enforcer-plugin.version}</version>
+                </plugin>
 
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>

@@ -14,11 +14,6 @@
 
     <artifactId>fiber-test-java</artifactId>
 
-    <properties>
-        <java.home>${java11.home}</java.home>
-        <java.version>${java11.version}</java.version>
-    </properties>
-
     <dependencies>
 
         <dependency>
@@ -34,6 +29,27 @@
 
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-enforcer-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>check-env-vars</id>
+                        <goals>
+                            <goal>enforce</goal>
+                        </goals>
+                        <configuration>
+                            <rules>
+                                <requireJavaVersion>
+                                    <version>${java.version}</version>
+                                </requireJavaVersion>
+                            </rules>
+                            <fail>true</fail>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <configuration>
                     <compilerVersion>${java.version}</compilerVersion>
@@ -45,17 +61,6 @@
                     </compilerArgs>
                     <showDeprecation>true</showDeprecation>
                     <showWarnings>true</showWarnings>
-                    <executable>${java.home}/bin/javac</executable>
-                    <fork>true</fork>
-                </configuration>
-            </plugin>
-
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-surefire-plugin</artifactId>
-                <configuration>
-                    <jvm>${java.home}/bin/java</jvm>
-                    <forkMode>once</forkMode>
                 </configuration>
             </plugin>
 
