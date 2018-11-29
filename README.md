@@ -20,7 +20,7 @@ Project employs 3 threading libraries to implement fibers in the benchmarks.
 2. [Akka Actors](https://akka.io/)
 3. [Quasar Fibers and Actors](https://docs.paralleluniverse.co/quasar/)
 4. [Kilim Actors, Continuations, and Fibers](https://github.com/kilim/kilim)
-5. [Project Loom Fibers](https://openjdk.java.net/projects/loom/)
+5. [Project Loom Continuations and Fibers](https://openjdk.java.net/projects/loom/)
 
 Usage
 -----
