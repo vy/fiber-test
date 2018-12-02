@@ -1,0 +1,8 @@
+{
+  "name": "quasar",
+  "jar_filepath": "${pwd}/target/fiber-test-quasar.jar",
+  "jvm_args": [
+    "-javaagent:${pwd}/target/agents/quasar-core.jar",
+    "-Dco.paralleluniverse.fibers.verifyInstrumentation"
+  ]
+}

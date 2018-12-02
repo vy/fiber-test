@@ -1,0 +1,4 @@
+{
+  "name": "akka",
+  "jar_filepath": "${pwd}/target/fiber-test-akka.jar"
+}

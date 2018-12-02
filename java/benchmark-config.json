@@ -1,0 +1,4 @@
+{
+  "name": "java",
+  "jar_filepath": "${pwd}/target/fiber-test-java.jar"
+}

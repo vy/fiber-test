@@ -1,0 +1,4 @@
+{
+  "name": "kilim",
+  "jar_filepath": "${pwd}/target/fiber-test-kilim.jar"
+}
