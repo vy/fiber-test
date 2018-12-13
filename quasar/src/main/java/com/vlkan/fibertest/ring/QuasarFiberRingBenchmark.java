@@ -1,11 +1,13 @@
 package com.vlkan.fibertest.ring;
 
+import co.paralleluniverse.common.monitoring.MonitorType;
+import co.paralleluniverse.fibers.*;
 import co.paralleluniverse.fibers.Fiber;
-import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.Strand;
 import org.openjdk.jmh.annotations.Benchmark;
 
 import static com.vlkan.fibertest.ring.RingBenchmarkConfig.MESSAGE_PASSING_COUNT;
+import static com.vlkan.fibertest.ring.RingBenchmarkConfig.THREAD_COUNT;
 import static com.vlkan.fibertest.ring.RingBenchmarkConfig.WORKER_COUNT;
 
 /**
@@ -21,10 +23,8 @@ public class QuasarFiberRingBenchmark implements RingBenchmark {
 
         private int sequence;
 
-        private InternalFiber(int id) {
-            super(String.format("%s-%s-%d",
-                    QuasarFiberRingBenchmark.class.getSimpleName(),
-                    InternalFiber.class.getSimpleName(), id));
+        private InternalFiber(int id, FiberScheduler scheduler) {
+            super("QuasarFiber-" + id, scheduler);
         }
 
         @Override
@@ -48,9 +48,10 @@ public class QuasarFiberRingBenchmark implements RingBenchmark {
     public int[] ringBenchmark() throws Exception {
 
         // Create fibers.
+        FiberScheduler scheduler = new FiberForkJoinScheduler("FiberRingBenchmark", THREAD_COUNT, null, MonitorType.NONE, false);
         InternalFiber[] fibers = new InternalFiber[WORKER_COUNT];
         for (int workerIndex = 0; workerIndex < WORKER_COUNT; workerIndex++) {
-            fibers[workerIndex] = new InternalFiber(workerIndex);
+            fibers[workerIndex] = new InternalFiber(workerIndex, scheduler);
         }
 
         // Set next fiber pointers.
@@ -74,6 +75,7 @@ public class QuasarFiberRingBenchmark implements RingBenchmark {
         for (int workerIndex = 0; workerIndex < WORKER_COUNT; workerIndex++) {
             sequences[workerIndex] = fibers[workerIndex].get();
         }
+        scheduler.shutdown();
 
         // Return populated sequences.
         return sequences;

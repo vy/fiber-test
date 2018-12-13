@@ -1,11 +1,14 @@
 package com.vlkan.fibertest.ring;
 
 import java.lang.Fiber;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.locks.LockSupport;
 
 import org.openjdk.jmh.annotations.Benchmark;
 
 import static com.vlkan.fibertest.ring.RingBenchmarkConfig.MESSAGE_PASSING_COUNT;
+import static com.vlkan.fibertest.ring.RingBenchmarkConfig.THREAD_COUNT;
 import static com.vlkan.fibertest.ring.RingBenchmarkConfig.WORKER_COUNT;
 
 public class JavaFiberRingBenchmark implements RingBenchmark {
@@ -46,21 +49,19 @@ public class JavaFiberRingBenchmark implements RingBenchmark {
     @Benchmark
     public int[] ringBenchmark() {
 
+        // Create the executor service.
+        ExecutorService executorService = Executors.newFixedThreadPool(THREAD_COUNT);
+
         // Create workers.
         Worker[] workers = new Worker[WORKER_COUNT];
         for (int workerIndex = 0; workerIndex < WORKER_COUNT; workerIndex++) {
             workers[workerIndex] = new Worker(workerIndex);
-            workers[workerIndex].fiber = new Fiber(workers[workerIndex]);
+            workers[workerIndex].fiber = Fiber.schedule(executorService, workers[workerIndex]);
         }
 
         // Set next worker pointers.
         for (int workerIndex = 0; workerIndex < WORKER_COUNT; workerIndex++) {
             workers[workerIndex].next = workers[(workerIndex + 1) % WORKER_COUNT];
-        }
-
-        // Start fibers.
-        for (Worker worker : workers) {
-            worker.fiber.schedule();
         }
 
         // Initiate the ring.
@@ -73,9 +74,12 @@ public class JavaFiberRingBenchmark implements RingBenchmark {
         int[] sequences = new int[WORKER_COUNT];
         for (int workerIndex = 0; workerIndex < WORKER_COUNT; workerIndex++) {
             Worker worker = workers[workerIndex];
-            worker.fiber.await();
+            worker.fiber.awaitTermination();
             sequences[workerIndex] = worker.sequence;
         }
+
+        // Shutdown the executor service.
+        executorService.shutdown();
 
         // Return populated sequences.
         return sequences;

@@ -8,6 +8,7 @@ import kilim.tools.Kilim;
 import org.openjdk.jmh.annotations.Benchmark;
 
 import static com.vlkan.fibertest.ring.RingBenchmarkConfig.MESSAGE_PASSING_COUNT;
+import static com.vlkan.fibertest.ring.RingBenchmarkConfig.THREAD_COUNT;
 import static com.vlkan.fibertest.ring.RingBenchmarkConfig.WORKER_COUNT;
 
 /**
@@ -16,7 +17,7 @@ import static com.vlkan.fibertest.ring.RingBenchmarkConfig.WORKER_COUNT;
 public class KilimActorRingBenchmark implements RingBenchmark {
 
     static {
-        Scheduler.defaultNumberThreads = 1;
+        Scheduler.defaultNumberThreads = THREAD_COUNT;
     }
 
     private static class Worker extends Task<Integer> {

@@ -2,11 +2,14 @@ package com.vlkan.fibertest.ring;
 
 import co.paralleluniverse.actors.Actor;
 import co.paralleluniverse.actors.ActorRef;
+import co.paralleluniverse.common.monitoring.MonitorType;
+import co.paralleluniverse.fibers.FiberFactory;
+import co.paralleluniverse.fibers.FiberForkJoinScheduler;
+import co.paralleluniverse.fibers.FiberScheduler;
 import co.paralleluniverse.fibers.SuspendExecution;
 import org.openjdk.jmh.annotations.Benchmark;
 
-import static com.vlkan.fibertest.ring.RingBenchmarkConfig.MESSAGE_PASSING_COUNT;
-import static com.vlkan.fibertest.ring.RingBenchmarkConfig.WORKER_COUNT;
+import static com.vlkan.fibertest.ring.RingBenchmarkConfig.*;
 
 /**
  * Ring benchmark using Quasar {@link Actor}s.
@@ -18,9 +21,7 @@ public class QuasarActorRingBenchmark implements RingBenchmark {
         private ActorRef<Integer> next = null;
 
         private InternalActor(int id) {
-            super(String.format("%s-%s-%d",
-                    QuasarActorRingBenchmark.class.getSimpleName(),
-                    InternalActor.class.getSimpleName(), id), null);
+            super("QuasarActor-" + id, null);
         }
 
         @Override
@@ -40,12 +41,13 @@ public class QuasarActorRingBenchmark implements RingBenchmark {
     public int[] ringBenchmark() throws Exception {
 
         // Create and start actors.
+        FiberScheduler scheduler = new FiberForkJoinScheduler("ChannelRingBenchmark", THREAD_COUNT, null, MonitorType.NONE, false);
         InternalActor[] actors = new InternalActor[WORKER_COUNT];
         @SuppressWarnings("unchecked") ActorRef<Integer>[] actorRefs = new ActorRef[WORKER_COUNT];
         for (int workerIndex = 0; workerIndex < WORKER_COUNT; workerIndex++) {
             InternalActor actor = new InternalActor(workerIndex);
             actors[workerIndex] = actor;
-            actorRefs[workerIndex] = actor.spawn();
+            actorRefs[workerIndex] = actor.spawn((FiberFactory) scheduler);
         }
 
         // Set next actor pointers.
@@ -61,6 +63,7 @@ public class QuasarActorRingBenchmark implements RingBenchmark {
         for (int workerIndex = 0; workerIndex < WORKER_COUNT; workerIndex++) {
             sequences[workerIndex] = actors[workerIndex].get();
         }
+        scheduler.shutdown();
 
         // Return populated sequences.
         return sequences;

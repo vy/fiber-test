@@ -5,6 +5,8 @@ import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
 import akka.dispatch.Futures;
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigFactory;
 import org.openjdk.jmh.annotations.Benchmark;
 import scala.concurrent.Await;
 import scala.concurrent.Future;
@@ -14,10 +16,11 @@ import scala.concurrent.duration.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
-import static com.vlkan.fibertest.ring.RingBenchmarkConfig.MESSAGE_PASSING_COUNT;
-import static com.vlkan.fibertest.ring.RingBenchmarkConfig.WORKER_COUNT;
+import static com.vlkan.fibertest.ring.RingBenchmarkConfig.*;
 
 /**
  * Ring benchmark using Akka {@link akka.actor.Actor}s.
@@ -62,7 +65,16 @@ public class AkkaActorRingBenchmark implements RingBenchmark {
     public int[] ringBenchmark() throws Exception {
 
         // Create the actor system.
-        ActorSystem system = ActorSystem.create(AkkaActorRingBenchmark.class.getSimpleName() + "System");
+        String configText = Stream
+                .of(
+                        "akka.log-dead-letters-during-shutdown = off",
+                        "akka.log-dead-letters = off",
+                        String.format(
+                                "akka.actor.default-dispatcher.fork-join-executor { parallelism-min = %d, parallelism-max = %d }",
+                                THREAD_COUNT, THREAD_COUNT))
+                .collect(Collectors.joining(", "));
+        Config config = ConfigFactory.parseString(configText);
+        ActorSystem system = ActorSystem.create(AkkaActorRingBenchmark.class.getSimpleName() + "System", config);
 
         // Create actors.
         List<Future<Integer>> futures = new ArrayList<>(WORKER_COUNT);
@@ -71,7 +83,7 @@ public class AkkaActorRingBenchmark implements RingBenchmark {
             Promise<Integer> promise = Futures.promise();
             futures.add(promise.future());
             Props actorProps = Props.create(InternalActor.class, workerIndex, promise);
-            String actorName = String.format("%s-%d", AkkaActorRingBenchmark.class.getSimpleName(), workerIndex);
+            String actorName = "AkkaActor-" + workerIndex;
             actors[workerIndex] = system.actorOf(
                     actorProps,
                     actorName);
