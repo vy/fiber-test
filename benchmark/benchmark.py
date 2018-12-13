@@ -13,7 +13,7 @@ import time
 import xml.etree.ElementTree as XmlElementTree
 
 
-JVM_ARGS = ["-Xms512M", "-Xmx512M"]
+JVM_ARGS = ["-Xms512M", "-Xmx512M", "--add-opens", "java.base/java.lang=ALL-UNNAMED"]
 
 JMH_FORK_COUNT = os.getenv("jmh.forkCount", "3")
 
