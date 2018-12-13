@@ -20,7 +20,13 @@ docker_run() {
         /bin/bash -c "$command"
 }
 
-case "$1" in
+
+
+case "${1:-}" in
+
+    bash)
+        docker_run "/bin/bash"
+        ;;
 
     mvn-clean|mvn-package)
         mvn_directive=$(cut -d'-' -f2 <<< "$1")
@@ -35,7 +41,7 @@ case "$1" in
         ;;
 
     *)
-        >&2 echo "usage: $0 <mvn-clean|mvn-package|benchmark>"
+        >&2 echo "usage: $0 <bash|mvn-clean|mvn-package|benchmark>"
         exit 1
 
 esac
