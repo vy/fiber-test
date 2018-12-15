@@ -38,6 +38,7 @@ public class JavaThreadRingBenchmark implements RingBenchmark {
                 while (waiting) {
                     LockSupport.park();
                 }
+                while (next.getState() == State.RUNNABLE);
                 waiting = true;
                 next.sequence = sequence - 1;
                 next.waiting = false;
