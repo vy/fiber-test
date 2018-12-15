@@ -33,6 +33,8 @@ public class QuasarFiberRingBenchmark implements RingBenchmark {
                 while (waiting) {
                     Strand.park();
                 }
+                // noinspection StatementWithEmptyBody (Ensure the next fiber is indeed parked.)
+                while (next.getState() == State.RUNNING);
                 waiting = true;
                 next.sequence = sequence - 1;
                 next.waiting = false;

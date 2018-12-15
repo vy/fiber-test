@@ -53,6 +53,7 @@ QuasarFiberRingBenchmark.ringBenchmark        avgt    4   666.120 ±  148.967  m
 # Contributors
 
 - [Arek Burdach](https://github.com/arkadius)
+- Jordan Sheinfeld
 - [Seth Lytle](https://github.com/nqzero)
 
 # License

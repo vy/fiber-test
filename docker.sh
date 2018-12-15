@@ -20,8 +20,6 @@ docker_run() {
         /bin/bash -c "$command"
 }
 
-
-
 case "${1:-}" in
 
     bash)
