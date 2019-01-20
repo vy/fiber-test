@@ -2,8 +2,6 @@ package com.vlkan.fibertest.ring;
 
 import org.openjdk.jmh.annotations.Benchmark;
 
-import java.util.concurrent.locks.LockSupport;
-
 import static com.vlkan.fibertest.ring.RingBenchmarkConfig.MESSAGE_PASSING_COUNT;
 import static com.vlkan.fibertest.ring.RingBenchmarkConfig.WORKER_COUNT;
 
@@ -25,26 +23,51 @@ public class JavaThreadRingBenchmark implements RingBenchmark {
         private int sequence;
 
         private Worker(int id, int[] sequences) {
-            super(String.format("%s-%s-%d",
-                    JavaThreadRingBenchmark.class.getSimpleName(),
-                    Worker.class.getSimpleName(), id));
+            super("Worker-"  + id);
             this.id = id;
             this.sequences = sequences;
         }
 
         @Override
         public void run() {
-            do {
-                while (waiting) {
-                    LockSupport.park();
+            for (;;) {
+                synchronized (this) {
+                    if (!waiting) {
+                        // noinspection SynchronizeOnNonFinalField
+                        synchronized (next) {
+                            if (!next.waiting) {
+                                String message = String.format("%s was expecting %s to be waiting", getName(), next.getName());
+                                throw new IllegalStateException(message);
+                            }
+                            next.sequence = sequence - 1;
+                            next.waiting = false;
+                            waiting = true;
+                            next.signal();
+                        }
+                        if (sequence <= 0) {
+                            break;
+                        }
+                    }
+                    await();
                 }
-                while (next.getState() == State.RUNNABLE);
-                waiting = true;
-                next.sequence = sequence - 1;
-                next.waiting = false;
-                LockSupport.unpark(next);
-            } while (sequence > 0);
+            }
             sequences[id] = sequence;
+        }
+
+        private synchronized void await() {
+            while (waiting) {
+                try {
+                    wait();
+                } catch (InterruptedException ignored) {
+                    Thread.currentThread().interrupt();
+                }
+            }
+        }
+
+        private void signal() {
+            // Using notifyAll() rather than notify() since both a worker
+            // and the main thread that is trying to join() is wait()'ing.
+            notifyAll();
         }
 
     }
@@ -70,11 +93,20 @@ public class JavaThreadRingBenchmark implements RingBenchmark {
             worker.start();
         }
 
+        // Ensure workers are started and waiting.
+        for (Worker worker : workers) {
+            // noinspection LoopConditionNotUpdatedInsideLoop, StatementWithEmptyBody
+            while (worker.getState() != Thread.State.WAITING);
+        }
+
         // Initiate the ring.
-        Worker first = workers[0];
-        first.sequence = MESSAGE_PASSING_COUNT;
-        first.waiting = false;
-        LockSupport.unpark(first);
+        Worker firstWorker = workers[0];
+        // noinspection SynchronizationOnLocalVariableOrMethodParameter
+        synchronized (firstWorker) {
+            firstWorker.sequence = MESSAGE_PASSING_COUNT;
+            firstWorker.waiting = false;
+            firstWorker.signal();
+        }
 
         // Wait for workers to complete.
         for (Worker worker : workers) {
