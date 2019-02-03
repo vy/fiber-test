@@ -2,6 +2,11 @@ package com.vlkan.fibertest.ring;
 
 import org.openjdk.jmh.annotations.Benchmark;
 
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+
+import static com.vlkan.fibertest.StdoutLogger.log;
 import static com.vlkan.fibertest.ring.RingBenchmarkConfig.MESSAGE_PASSING_COUNT;
 import static com.vlkan.fibertest.ring.RingBenchmarkConfig.WORKER_COUNT;
 
@@ -11,6 +16,10 @@ import static com.vlkan.fibertest.ring.RingBenchmarkConfig.WORKER_COUNT;
 public class JavaThreadRingBenchmark implements RingBenchmark {
 
     private static class Worker extends Thread {
+
+        private final Lock lock = new ReentrantLock();
+
+        private final Condition notWaiting = lock.newCondition();
 
         private final int id;
 
@@ -31,43 +40,49 @@ public class JavaThreadRingBenchmark implements RingBenchmark {
         @Override
         public void run() {
             for (;;) {
-                synchronized (this) {
+                log("[%2d] locking", id);
+                lock.lock();
+                try {
                     if (!waiting) {
-                        // noinspection SynchronizeOnNonFinalField
-                        synchronized (next) {
+                        log("[%2d] locking next", id);
+                        next.lock.lock();
+                        try {
+                            log("[%2d] signaling next (sequence=%d)", id, sequence);
                             if (!next.waiting) {
-                                String message = String.format("%s was expecting %s to be waiting", getName(), next.getName());
+                                String message = String.format("%s was expecting %s to be waiting", id, next.id);
                                 throw new IllegalStateException(message);
                             }
                             next.sequence = sequence - 1;
                             next.waiting = false;
                             waiting = true;
-                            next.signal();
+                            next.notWaiting.signal();
+                        } finally {
+                            log("[%2d] unlocking next", id);
+                            next.lock.unlock();
                         }
                         if (sequence <= 0) {
+                            sequences[id] = sequence;
                             break;
                         }
                     }
                     await();
+                } finally {
+                    log("[%2d] unlocking", id);
+                    lock.unlock();
                 }
             }
-            sequences[id] = sequence;
         }
 
-        private synchronized void await() {
+        private void await() {
             while (waiting) {
                 try {
-                    wait();
+                    log("[%2d] awaiting", id);
+                    notWaiting.await();
+                    log("[%2d] woke up", id);
                 } catch (InterruptedException ignored) {
                     Thread.currentThread().interrupt();
                 }
             }
-        }
-
-        private void signal() {
-            // Using notifyAll() rather than notify() since both a worker
-            // and the main thread that is trying to join() is wait()'ing.
-            notifyAll();
         }
 
     }
@@ -76,44 +91,46 @@ public class JavaThreadRingBenchmark implements RingBenchmark {
     @Benchmark
     public int[] ringBenchmark() throws Exception {
 
-        // Create worker threads.
+        log("creating worker threads (WORKER_COUNT=%d)", WORKER_COUNT);
         int[] sequences = new int[WORKER_COUNT];
         Worker[] workers = new Worker[WORKER_COUNT];
         for (int workerIndex = 0; workerIndex < WORKER_COUNT; workerIndex++) {
             workers[workerIndex] = new Worker(workerIndex, sequences);
         }
 
-        // Set next worker thread pointers.
+        log("setting next worker thread pointers");
         for (int workerIndex = 0; workerIndex < WORKER_COUNT; workerIndex++) {
             workers[workerIndex].next = workers[(workerIndex + 1) % WORKER_COUNT];
         }
 
-        // Start workers.
+        log("starting workers");
         for (Worker worker : workers) {
             worker.start();
         }
 
-        // Ensure workers are started and waiting.
+        log("ensuring workers are started and waiting");
         for (Worker worker : workers) {
             // noinspection LoopConditionNotUpdatedInsideLoop, StatementWithEmptyBody
             while (worker.getState() != Thread.State.WAITING);
         }
 
-        // Initiate the ring.
+        log("initiating the ring (MESSAGE_PASSING_COUNT=%d)", MESSAGE_PASSING_COUNT);
         Worker firstWorker = workers[0];
-        // noinspection SynchronizationOnLocalVariableOrMethodParameter
-        synchronized (firstWorker) {
+        firstWorker.lock.lock();
+        try {
             firstWorker.sequence = MESSAGE_PASSING_COUNT;
             firstWorker.waiting = false;
-            firstWorker.signal();
+            firstWorker.notWaiting.signal();
+        } finally {
+            firstWorker.lock.unlock();
         }
 
-        // Wait for workers to complete.
+        log("waiting for workers to complete");
         for (Worker worker : workers) {
             worker.join();
         }
 
-        // Return populated sequences.
+        log("returning populated sequences");
         return sequences;
 
     }
