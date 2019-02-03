@@ -16,4 +16,9 @@ public enum PropertyHelper {;
         return number;
     }
 
+    public static boolean readBooleanProperty(String name, String defaultValue) {
+        String value = System.getProperty(name, defaultValue);
+        return Boolean.parseBoolean(value);
+    }
+
 }
