@@ -15,24 +15,23 @@ import static com.vlkan.fibertest.ring.RingBenchmarkConfig.WORKER_COUNT;
  */
 public class JavaThreadRingBenchmark implements RingBenchmark {
 
-    private static class Worker extends Thread {
+    static class Worker implements Runnable {
 
-        private final Lock lock = new ReentrantLock();
+        final Lock lock = new ReentrantLock();
 
-        private final Condition notWaiting = lock.newCondition();
+        final Condition notWaiting = lock.newCondition();
 
-        private final int id;
+        final int id;
 
-        private final int[] sequences;
+        final int[] sequences;
 
-        private Worker next = null;
+        Worker next = null;
 
-        private volatile boolean waiting = true;
+        volatile boolean waiting = true;
 
-        private int sequence;
+        int sequence;
 
-        private Worker(int id, int[] sequences) {
-            super("Worker-"  + id);
+        Worker(int id, int[] sequences) {
             this.id = id;
             this.sequences = sequences;
         }
@@ -94,24 +93,27 @@ public class JavaThreadRingBenchmark implements RingBenchmark {
         log("creating worker threads (WORKER_COUNT=%d)", WORKER_COUNT);
         int[] sequences = new int[WORKER_COUNT];
         Worker[] workers = new Worker[WORKER_COUNT];
+        Thread[] threads = new Thread[WORKER_COUNT];
         for (int workerIndex = 0; workerIndex < WORKER_COUNT; workerIndex++) {
-            workers[workerIndex] = new Worker(workerIndex, sequences);
+            Worker worker = new Worker(workerIndex, sequences);
+            workers[workerIndex] = worker;
+            threads[workerIndex] = new Thread(worker, "Worker-" + workerIndex);
         }
 
-        log("setting next worker thread pointers");
+        log("setting next worker pointers");
         for (int workerIndex = 0; workerIndex < WORKER_COUNT; workerIndex++) {
             workers[workerIndex].next = workers[(workerIndex + 1) % WORKER_COUNT];
         }
 
-        log("starting workers");
-        for (Worker worker : workers) {
-            worker.start();
+        log("starting threads");
+        for (Thread thread : threads) {
+            thread.start();
         }
 
-        log("ensuring workers are started and waiting");
-        for (Worker worker : workers) {
+        log("ensuring threads are started and waiting");
+        for (Thread thread : threads) {
             // noinspection LoopConditionNotUpdatedInsideLoop, StatementWithEmptyBody
-            while (worker.getState() != Thread.State.WAITING);
+            while (thread.getState() != Thread.State.WAITING);
         }
 
         log("initiating the ring (MESSAGE_PASSING_COUNT=%d)", MESSAGE_PASSING_COUNT);
@@ -125,9 +127,9 @@ public class JavaThreadRingBenchmark implements RingBenchmark {
             firstWorker.lock.unlock();
         }
 
-        log("waiting for workers to complete");
-        for (Worker worker : workers) {
-            worker.join();
+        log("waiting for threads to complete");
+        for (Thread thread : threads) {
+            thread.join();
         }
 
         log("returning populated sequences");
