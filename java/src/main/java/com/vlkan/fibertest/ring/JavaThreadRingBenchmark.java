@@ -71,7 +71,7 @@ public class JavaThreadRingBenchmark implements RingBenchmark {
                             next.lock.unlock();
                         }
                         if (sequence <= 0) {
-                            log("[%2d] signaling completion (sequence=%d)", id, sequence);
+                            log("[%2d] signaling completion (sequence=%d)", () -> new Object[] { id, sequence });
                             waiting = true;
                             completed = true;
                             completedCondition.signal();
@@ -92,7 +92,7 @@ public class JavaThreadRingBenchmark implements RingBenchmark {
             while (waiting) {
                 log("[%2d] awaiting", id);
                 waitingCondition.await();
-                log("[%2d] woke up (sequence=%d)", id, sequence);
+                log("[%2d] woke up (sequence=%d)", () -> new Object[] { id, sequence });
             }
         }
 

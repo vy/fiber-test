@@ -63,7 +63,7 @@ public class QuasarFiberRingBenchmark implements RingBenchmark {
                         next.lock.lock();
                         try {
                             if (!next.completed) {
-                                log("[%2d] signaling next (sequence=%d)", id, sequence);
+                                log("[%2d] signaling next (sequence=%d)", () -> new Object[] { id, sequence });
                                 if (!next.waiting) {
                                     String message = String.format("%s was expecting %s to be waiting", id, next.id);
                                     throw new IllegalStateException(message);
@@ -78,7 +78,7 @@ public class QuasarFiberRingBenchmark implements RingBenchmark {
                             next.lock.unlock();
                         }
                         if (sequence <= 0) {
-                            log("[%2d] signaling completion (sequence=%d)", id, sequence);
+                            log("[%2d] signaling completion (sequence=%d)", () -> new Object[] { id, sequence });
                             waiting = true;
                             completed = true;
                             completedCondition.signal();
@@ -101,7 +101,7 @@ public class QuasarFiberRingBenchmark implements RingBenchmark {
             while (waiting) {
                 log("[%2d] awaiting", id);
                 waitingCondition.await();
-                log("[%2d] woke up (sequence=%d)", id, sequence);
+                log("[%2d] woke up (sequence=%d)", () -> new Object[] { id, sequence });
             }
         }
 
