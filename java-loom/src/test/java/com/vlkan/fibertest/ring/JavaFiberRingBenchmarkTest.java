@@ -8,12 +8,13 @@ import static com.vlkan.fibertest.StdoutLogger.log;
 public class JavaFiberRingBenchmarkTest {
 
     @Test
-    public void testRingBenchmark() throws Exception {
-        long startTimeNanos = System.nanoTime();
-        RingBenchmark benchmark = new JavaFiberRingBenchmark();
-        int[] sequences = benchmark.ringBenchmark();
-        RingBenchmarkTestUtil.verifyResult(sequences);
-        log("duration: %s", formatDurationSinceNanos(startTimeNanos));
+    public void testRingBenchmark() {
+        try (JavaFiberRingBenchmark benchmark = new JavaFiberRingBenchmark()) {
+            long startTimeNanos = System.nanoTime();
+            int[] sequences = benchmark.ringBenchmark();
+            RingBenchmarkTestUtil.verifyResult(sequences);
+            log("duration: %s", formatDurationSinceNanos(startTimeNanos));
+        }
     }
 
 }

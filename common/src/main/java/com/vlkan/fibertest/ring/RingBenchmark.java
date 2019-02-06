@@ -1,11 +1,11 @@
 package com.vlkan.fibertest.ring;
 
-import org.openjdk.jmh.annotations.Scope;
-import org.openjdk.jmh.annotations.State;
-
-@State(Scope.Benchmark)
-public interface RingBenchmark {
+public interface RingBenchmark extends AutoCloseable {
 
     int[] ringBenchmark() throws Exception;
+
+    // TODO Remove once every implementation overrides.
+    @Override
+    default void close() throws Exception {}
 
 }

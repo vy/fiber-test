@@ -3,142 +3,217 @@ package com.vlkan.fibertest.ring;
 import co.paralleluniverse.common.monitoring.MonitorType;
 import co.paralleluniverse.fibers.*;
 import co.paralleluniverse.fibers.Fiber;
-import co.paralleluniverse.strands.Strand;
+import co.paralleluniverse.strands.SuspendableCallable;
 import co.paralleluniverse.strands.concurrent.ReentrantLock;
 import org.openjdk.jmh.annotations.Benchmark;
+import org.openjdk.jmh.annotations.Scope;
+import org.openjdk.jmh.annotations.State;
+import org.openjdk.jmh.annotations.TearDown;
 
+import java.util.concurrent.Callable;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 
 import static com.vlkan.fibertest.StdoutLogger.log;
-import static com.vlkan.fibertest.ring.RingBenchmarkConfig.MESSAGE_PASSING_COUNT;
-import static com.vlkan.fibertest.ring.RingBenchmarkConfig.THREAD_COUNT;
-import static com.vlkan.fibertest.ring.RingBenchmarkConfig.WORKER_COUNT;
+import static com.vlkan.fibertest.ring.RingBenchmarkConfig.*;
 
 /**
  * Ring benchmark using Quasar {@link Fiber}s.
  */
+@State(Scope.Benchmark)
 public class QuasarFiberRingBenchmark implements RingBenchmark {
 
-    private static class InternalFiber extends Fiber<Integer> {
+    private static class Worker implements SuspendableCallable<Void> {
 
         private final Lock lock = new ReentrantLock();
 
-        private final Condition notWaiting = lock.newCondition();
+        private final Condition waitingCondition = lock.newCondition();
+
+        private final Condition completedCondition = lock.newCondition();
 
         private final int id;
 
-        private InternalFiber next;
+        private final CountDownLatch startLatch;
 
-        private volatile boolean waiting = true;
+        private Worker next;
+
+        private boolean waiting = true;
+
+        private boolean completed = false;
 
         private int sequence;
 
-        private InternalFiber(int id, FiberScheduler scheduler) {
-            super("QuasarFiber-" + id, scheduler);
+        private Worker(int id, CountDownLatch startLatch) {
             this.id = id;
+            this.startLatch = startLatch;
         }
 
         @Override
-        protected Integer run() throws SuspendExecution {
-            for (;;) {
-                log("[%2d] locking", id);
-                lock.lock();
-                try {
-                    if (!waiting) {
+        @Suspendable
+        public Void run() {
+            startLatch.countDown();
+            log("[%2d] locking", id);
+            lock.lock();
+            try {
+                // noinspection InfiniteLoopStatement
+                for (;;) {
+                    if (!waiting && !completed) {
                         log("[%2d] locking next", id);
                         next.lock.lock();
                         try {
-                            log("[%2d] signaling next (sequence=%d)", id, sequence);
-                            if (!next.waiting) {
-                                String message = String.format("%s was expecting %s to be waiting", id, next.id);
-                                throw new IllegalStateException(message);
+                            if (!next.completed) {
+                                log("[%2d] signaling next (sequence=%d)", () -> new Object[] { id, sequence });
+                                if (!next.waiting) {
+                                    String message = String.format("%s was expecting %s to be waiting", id, next.id);
+                                    throw new IllegalStateException(message);
+                                }
+                                next.sequence = sequence - 1;
+                                next.waiting = false;
+                                waiting = true;
+                                next.waitingCondition.signal();
                             }
-                            next.sequence = sequence - 1;
-                            next.waiting = false;
-                            waiting = true;
-                            next.notWaiting.signal();
                         } finally {
                             log("[%2d] unlocking next", id);
                             next.lock.unlock();
                         }
                         if (sequence <= 0) {
-                            return sequence;
+                            log("[%2d] signaling completion (sequence=%d)", () -> new Object[] { id, sequence });
+                            waiting = true;
+                            completed = true;
+                            completedCondition.signal();
                         }
                     }
                     await();
-                } finally {
-                    log("[%2d] unlocking", id);
-                    lock.unlock();
                 }
+            } catch (InterruptedException ignored) {
+                log("[%2d] interrupted", id);
+                Thread.currentThread().interrupt();
+            } finally {
+                log("[%2d] unlocking", id);
+                lock.unlock();
             }
+            return null;
         }
 
-        private void await() throws SuspendExecution {
+        @Suspendable
+        private void await() throws InterruptedException {
             while (waiting) {
-                try {
-                    log("[%2d] awaiting", id);
-                    notWaiting.await();
-                    log("[%2d] woke up", id);
-                } catch (InterruptedException ignored) {
-                    Thread.currentThread().interrupt();
-                }
+                log("[%2d] awaiting", id);
+                waitingCondition.await();
+                log("[%2d] woke up (sequence=%d)", () -> new Object[] { id, sequence });
             }
         }
 
+    }
+
+    private static final class Context implements AutoCloseable, Callable<int[]> {
+
+        private final FiberScheduler scheduler;
+
+        private final int[] sequences;
+
+        private final Worker[] workers;
+
+        private Context() {
+
+            log("creating executor service (THREAD_COUNT=%d)", THREAD_COUNT);
+
+            log("creating workers (WORKER_COUNT=%d)", WORKER_COUNT);
+            this.workers = new Worker[WORKER_COUNT];
+            this.sequences = new int[WORKER_COUNT];
+            CountDownLatch startLatch = new CountDownLatch(WORKER_COUNT);
+            for (int workerIndex = 0; workerIndex < WORKER_COUNT; workerIndex++) {
+                workers[workerIndex] = new Worker(workerIndex, startLatch);
+            }
+
+            log("setting next worker pointers");
+            for (int workerIndex = 0; workerIndex < WORKER_COUNT; workerIndex++) {
+                workers[workerIndex].next = workers[(workerIndex + 1) % WORKER_COUNT];
+            }
+
+            log("starting fibers (THREAD_COUNT=%d)", THREAD_COUNT);
+            this.scheduler = new FiberForkJoinScheduler("RingBenchmark", THREAD_COUNT, null, MonitorType.NONE, false);
+            for (Worker worker : workers) {
+                scheduler.newFiber(worker).start();
+            }
+
+            log("waiting for fibers to start");
+            try {
+                startLatch.await();
+            } catch (InterruptedException ignored) {
+                log("start latch wait interrupted");
+                Thread.currentThread().interrupt();
+            }
+
+        }
+
+        @Override
+        public void close() {
+            log("shutting down the scheduler");
+            scheduler.shutdown();
+        }
+
+        @Override
+        @Suspendable
+        public int[] call() {
+
+            log("initiating the ring (MESSAGE_PASSING_COUNT=%d)", MESSAGE_PASSING_COUNT);
+            Worker firstWorker = workers[0];
+            firstWorker.lock.lock();
+            try {
+                firstWorker.sequence = MESSAGE_PASSING_COUNT;
+                firstWorker.waiting = false;
+                firstWorker.waitingCondition.signal();
+            } finally {
+                firstWorker.lock.unlock();
+            }
+
+            for (Worker worker : workers) {
+                log("waiting for completion (id=%d)", worker.id);
+                worker.lock.lock();
+                try {
+                    while (!worker.completed) {
+                        worker.completedCondition.await();
+                    }
+                    sequences[worker.id] = worker.sequence;
+                } catch (InterruptedException ignored) {
+                    log("interrupted (id=%d)", worker.id);
+                    Thread.currentThread().interrupt();
+                } finally {
+                    worker.lock.unlock();
+                }
+            }
+
+            log("resetting workers");
+            for (Worker worker : workers) {
+                worker.completed = false;
+            }
+
+            log("returning populated sequences");
+            return sequences;
+
+        }
+    }
+
+    private final Context context = new Context();
+
+    @Override
+    @TearDown
+    public void close() {
+        context.close();
     }
 
     @Override
     @Benchmark
-    public int[] ringBenchmark() throws Exception {
-
-        log("creating fibers (THREAD_COUNT=%d, WORKER_COUNT=%d)", THREAD_COUNT, WORKER_COUNT);
-        FiberScheduler scheduler = new FiberForkJoinScheduler("FiberRingBenchmark", THREAD_COUNT, null, MonitorType.NONE, false);
-        InternalFiber[] fibers = new InternalFiber[WORKER_COUNT];
-        for (int workerIndex = 0; workerIndex < WORKER_COUNT; workerIndex++) {
-            fibers[workerIndex] = new InternalFiber(workerIndex, scheduler);
-        }
-
-        log("setting next fiber pointers");
-        for (int workerIndex = 0; workerIndex < WORKER_COUNT; workerIndex++) {
-            fibers[workerIndex].next = fibers[(workerIndex + 1) % WORKER_COUNT];
-        }
-
-        log("starting fibers");
-        for (InternalFiber fiber : fibers) {
-            fiber.start();
-        }
-
-        log("ensuring fibers are started and waiting");
-        for (InternalFiber fiber : fibers) {
-            while (fiber.getState() != Strand.State.WAITING);
-        }
-
-        log("initiating the ring (MESSAGE_PASSING_COUNT=%d)", MESSAGE_PASSING_COUNT);
-        InternalFiber firstFiber = fibers[0];
-        firstFiber.lock.lock();
-        try {
-            firstFiber.sequence = MESSAGE_PASSING_COUNT;
-            firstFiber.waiting = false;
-            firstFiber.notWaiting.signal();
-        } finally {
-            firstFiber.lock.unlock();
-        }
-
-        log("waiting for fibers to complete");
-        int[] sequences = new int[WORKER_COUNT];
-        for (int workerIndex = 0; workerIndex < WORKER_COUNT; workerIndex++) {
-            sequences[workerIndex] = fibers[workerIndex].get();
-        }
-        scheduler.shutdown();
-
-        log("returning populated sequences");
-        return sequences;
-
+    public int[] ringBenchmark() {
+        return context.call();
     }
 
-    public static void main(String[] args) throws Exception {
-        new QuasarFiberRingBenchmark().ringBenchmark();
+    public static void main(String[] args) {
+        try (QuasarFiberRingBenchmark benchmark = new QuasarFiberRingBenchmark()) {
+            benchmark.ringBenchmark();
+        }
     }
 
 }
