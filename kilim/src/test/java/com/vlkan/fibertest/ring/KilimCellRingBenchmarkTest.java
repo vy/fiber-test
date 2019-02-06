@@ -6,12 +6,12 @@ import org.junit.Test;
 import static com.vlkan.fibertest.DurationHelper.formatDurationSinceNanos;
 import static com.vlkan.fibertest.StdoutLogger.log;
 
-public class KilimActorRingBenchmarkTest {
+public class KilimCellRingBenchmarkTest {
 
     @SuppressWarnings("unused")     // entrance for Kilim.run()
     public static void kilimEntrance(String[] ignored) {
         long startTimeNanos = System.nanoTime();
-        KilimActorRingBenchmark benchmark = new KilimActorRingBenchmark();
+        KilimCellRingBenchmark benchmark = new KilimCellRingBenchmark();
         int[] sequences = benchmark.ringBenchmark();
         RingBenchmarkTestUtil.verifyResult(sequences);
         log("duration: %s", formatDurationSinceNanos(startTimeNanos));
@@ -19,7 +19,7 @@ public class KilimActorRingBenchmarkTest {
 
     @Test
     public void testRingBenchmark() throws Exception {
-        Kilim.run("com.vlkan.fibertest.ring.KilimActorRingBenchmarkTest", "kilimEntrance");
+        Kilim.run("com.vlkan.fibertest.ring.KilimCellRingBenchmarkTest", "kilimEntrance");
     }
 
 }

@@ -1,30 +1,22 @@
 package com.vlkan.fibertest.ring;
 
-import kilim.Cell;
-import kilim.Pausable;
-import kilim.Scheduler;
-import kilim.Task;
+import kilim.*;
 import kilim.tools.Kilim;
 import org.openjdk.jmh.annotations.Benchmark;
 
+import static com.vlkan.fibertest.StdoutLogger.log;
 import static com.vlkan.fibertest.ring.RingBenchmarkConfig.MESSAGE_PASSING_COUNT;
 import static com.vlkan.fibertest.ring.RingBenchmarkConfig.THREAD_COUNT;
 import static com.vlkan.fibertest.ring.RingBenchmarkConfig.WORKER_COUNT;
 
 /**
- * Ring benchmark using Kilim {@link Task}s with message passing.
+ * Ring benchmark using Kilim {@link Cell}s for message passing.
  */
-public class KilimActorRingBenchmark implements RingBenchmark {
-
-    static {
-        Scheduler.defaultNumberThreads = THREAD_COUNT;
-    }
+public class KilimCellRingBenchmark implements RingBenchmark {
 
     private static class Worker extends Task<Integer> {
 
         private final int _id;
-
-        private final int[] sequences;
 
         private Worker next;
 
@@ -32,18 +24,20 @@ public class KilimActorRingBenchmark implements RingBenchmark {
 
         private Cell<Integer> box = new Cell<>();
 
-        private Worker(int id, int[] sequences) {
+        private Worker(int id, Scheduler scheduler) {
             this._id = id;
-            this.sequences = sequences;
+            setScheduler(scheduler);
         }
 
         @Override
         public void execute() throws Pausable {
+            log("[%2d] started", _id);
             do {
+                log("[%2d] polling", _id);
                 sequence = box.get();
+                log("[%2d] signaling next (sequence=%d)", () -> new Object[] { _id, sequence });
                 next.box.putnb(sequence - 1);
             } while (sequence > 0);
-            sequences[_id] = sequence;
         }
 
     }
@@ -52,42 +46,46 @@ public class KilimActorRingBenchmark implements RingBenchmark {
     @Benchmark
     public int[] ringBenchmark() {
 
-        // Create workers.
+        log("creating workers (THREAD_COUNT=%d, WORKER_COUNT=%d)", () -> new Object[] { THREAD_COUNT, WORKER_COUNT });
+        Scheduler scheduler = new ForkJoinScheduler(THREAD_COUNT);
         int[] sequences = new int[WORKER_COUNT];
         Worker[] workers = new Worker[WORKER_COUNT];
         for (int workerIndex = 0; workerIndex < WORKER_COUNT; workerIndex++) {
-            workers[workerIndex] = new Worker(workerIndex, sequences);
+            workers[workerIndex] = new Worker(workerIndex, scheduler);
         }
 
-        // Set next worker pointers.
+        log("setting next worker pointers");
         for (int workerIndex = 0; workerIndex < WORKER_COUNT; workerIndex++) {
             workers[workerIndex].next = workers[(workerIndex + 1) % WORKER_COUNT];
         }
 
-        // Start workers.
+        log("starting workers");
         for (Worker worker : workers) {
             worker.start();
         }
 
-        // Initiate the ring.
+        log("initiating ring (MESSAGE_PASSING_COUNT=%d)", MESSAGE_PASSING_COUNT);
         Worker firstWorker = workers[0];
         firstWorker.box.putnb(MESSAGE_PASSING_COUNT);
 
-        // Wait for scheduler to finish and shut it down.
-        Task.idledown();
+        log("waiting for scheduler to finish and shutting it down");
+        scheduler.idledown();
 
-        // Return populated sequences.
+        log("returning populated sequences");
+        for (int workerIndex = 0; workerIndex < WORKER_COUNT; workerIndex++) {
+            sequences[workerIndex] = workers[workerIndex].sequence;
+        }
         return sequences;
 
     }
 
     @SuppressWarnings("unused")     // entrance for Kilim.run()
     public static void kilimEntrace(String[] ignored) {
-        new KilimActorRingBenchmark().ringBenchmark();
+        new KilimCellRingBenchmark().ringBenchmark();
     }
 
     public static void main(String[] args) throws Exception {
-        Kilim.run("com.vlkan.fibertest.ring.KilimActorRingBenchmark", "kilimEntrace", args);
+        Kilim.run("com.vlkan.fibertest.ring.KilimCellRingBenchmark", "kilimEntrace", args);
     }
 
 }
