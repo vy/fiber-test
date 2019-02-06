@@ -1,5 +1,9 @@
 {
   "name": "java-loom",
   "jar_filepath": "${pwd}/target/fiber-test-java-loom.jar",
-  "java_filepath": "${pwd}/target/openjdk-loom/jdk/bin/java"
+  "java_filepath": "${pwd}/target/openjdk-loom/jdk/bin/java",
+  "jvm_args": [
+    "-XX:+UnlockDiagnosticVMOptions",
+    "-XX:+UseNewCode"
+  ]
 }
