@@ -322,7 +322,7 @@ def collect_configs():
 def extend_configs_for_ring_benchmark(configs):
     extended_configs = []
     jvm_args_extensions_by_benchmark_type = {
-        "ring-start-stop": ["-Dring.workerCount=1000", "-Dring.messagePassingCount=1"],
+        "ring-start-stop": ["-Dring.workerCount=1000", "-Dring.messagePassingCount=0"],
         "ring-ctx-switch": ["-Dring.workerCount=100", "-Dring.messagePassingCount=1000000"]}
     for config in configs:
         for benchmark_type, jvm_args_extension in jvm_args_extensions_by_benchmark_type.items():
