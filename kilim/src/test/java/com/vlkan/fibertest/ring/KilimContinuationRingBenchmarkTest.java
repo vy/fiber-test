@@ -10,11 +10,12 @@ public class KilimContinuationRingBenchmarkTest {
 
     @SuppressWarnings("unused")     // entrance for Kilim.run()
     public static void kilimEntrance(String[] ignored) {
-        long startTimeNanos = System.nanoTime();
-        KilimContinuationRingBenchmark benchmark = new KilimContinuationRingBenchmark();
-        int[] sequences = benchmark.ringBenchmark();
-        RingBenchmarkTestUtil.verifyResult(sequences);
-        log("duration: %s", formatDurationSinceNanos(startTimeNanos));
+        try (KilimContinuationRingBenchmark benchmark = new KilimContinuationRingBenchmark()) {
+            long startTimeNanos = System.nanoTime();
+            int[] sequences = benchmark.ringBenchmark();
+            RingBenchmarkTestUtil.verifyResult(sequences);
+            log("duration: %s", formatDurationSinceNanos(startTimeNanos));
+        }
     }
 
     @Test

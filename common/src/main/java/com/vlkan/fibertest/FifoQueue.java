@@ -3,6 +3,8 @@ package com.vlkan.fibertest;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
+import static com.vlkan.fibertest.StdoutLogger.log;
+
 /**
  * A not-thread-safe garbage-free array-backed bounded FIFO queue.
  */
@@ -31,6 +33,7 @@ public class FifoQueue<E> {
     }
 
     public void enqueue(E item) {
+        log("enqueue (dequeueIndex=%d, size=%d, item=%s)", () -> new Object[] { dequeueIndex, size, item });
         boolean full = isFull();
         if (full) {
             throw new IllegalStateException("queue is full");
@@ -54,6 +57,7 @@ public class FifoQueue<E> {
 
     @Nullable
     public E dequeue() {
+        log("dequeue (dequeueIndex=%d, size=%d)", () -> new Object[] { dequeueIndex, size });
         boolean empty = isEmpty();
         if (empty) {
             return null;
