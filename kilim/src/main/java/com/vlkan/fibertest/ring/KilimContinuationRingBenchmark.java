@@ -1,14 +1,13 @@
 package com.vlkan.fibertest.ring;
 
+import com.vlkan.fibertest.FifoQueue;
 import kilim.Continuation;
 import kilim.Fiber;
 import kilim.Pausable;
 import kilim.tools.Kilim;
 import org.openjdk.jmh.annotations.Benchmark;
 
-import java.util.LinkedList;
-import java.util.Queue;
-
+import static com.vlkan.fibertest.StdoutLogger.log;
 import static com.vlkan.fibertest.ring.RingBenchmarkConfig.MESSAGE_PASSING_COUNT;
 import static com.vlkan.fibertest.ring.RingBenchmarkConfig.WORKER_COUNT;
 
@@ -21,28 +20,28 @@ public class KilimContinuationRingBenchmark implements RingBenchmark {
 
         private final int _id;
 
-        private final int[] sequences;
-
-        private final Queue<Continuation> continuations;
+        private final FifoQueue<Continuation> continuations;
 
         private Worker next;
 
         private int sequence;
 
-        private Worker(int id, int[] sequences, Queue<Continuation> continuations) {
+        private Worker(int id, FifoQueue<Continuation> continuations) {
             this._id = id;
-            this.sequences = sequences;
             this.continuations = continuations;
         }
 
         @Override
         public void execute() throws Pausable {
+            log("[%2d] started", _id);
             do {
-                Fiber.yield();
+                log("[%2d] signaling sequence (sequence=%d)", () -> new Object[] { _id, sequence });
                 next.sequence = sequence - 1;
-                continuations.add(next);
+                continuations.enqueue(next);
+                log("[%2d] yielding", _id);
+                Fiber.yield();
             } while (sequence > 0);
-            sequences[_id] = sequence;
+            log("[%2d] completed", _id);
         }
 
     }
@@ -51,35 +50,33 @@ public class KilimContinuationRingBenchmark implements RingBenchmark {
     @Benchmark
     public int[] ringBenchmark() {
 
-        // Create workers.
-        int[] sequences = new int[WORKER_COUNT];
+        log("creating workers (WORKER_COUNT=%d)", WORKER_COUNT);
         Worker[] workers = new Worker[WORKER_COUNT];
-        LinkedList<Continuation> continuations = new LinkedList<>();
+        FifoQueue<Continuation> continuations = new FifoQueue<>(1);
         for (int workerIndex = 0; workerIndex < WORKER_COUNT; workerIndex++) {
-            workers[workerIndex] = new Worker(workerIndex, sequences, continuations);
+            workers[workerIndex] = new Worker(workerIndex, continuations);
         }
 
-        // Set next worker pointers.
+        log("setting next worker pointers");
         for (int workerIndex = 0; workerIndex < WORKER_COUNT; workerIndex++) {
             workers[workerIndex].next = workers[(workerIndex + 1) % WORKER_COUNT];
         }
 
-        // Start workers.
-        for (Worker worker : workers) {
-            worker.run();
-        }
-
-        // Initiate the ring.
+        log("initiating the ring (MESSAGE_PASSING_COUNT=%d)", MESSAGE_PASSING_COUNT);
         Worker firstWorker = workers[0];
         firstWorker.sequence = MESSAGE_PASSING_COUNT;
-        continuations.add(firstWorker);
+        continuations.enqueue(firstWorker);
 
-        // Execute scheduled continuations.
-        for (Continuation continuation; (continuation = continuations.pollFirst()) != null;) {
+        log("executing scheduled continuations");
+        for (Continuation continuation; (continuation = continuations.dequeue()) != null;) {
             continuation.run();
         }
 
-        // Return populated sequences.
+        log("returning populated sequences");
+        int[] sequences = new int[WORKER_COUNT];
+        for (int workerIndex = 0; workerIndex < WORKER_COUNT; workerIndex++) {
+            sequences[workerIndex] = workers[workerIndex].sequence;
+        }
         return sequences;
 
     }

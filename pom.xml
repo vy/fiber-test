@@ -26,13 +26,13 @@
 
         <!-- library versions -->
         <akka.version>2.5.18</akka.version>
+        <assertj.version>3.11.1</assertj.version>
         <jmh-core.version>1.21</jmh-core.version>
+        <jsr305.version>3.0.2</jsr305.version>
         <junit.version>4.12</junit.version>
         <kilim.version>2.0.1</kilim.version>
-        <logback.version>1.2.3</logback.version>
         <quasar.version>0.8.0</quasar.version>
         <scala.version>2.12</scala.version>
-        <slf4j.version>1.7.25</slf4j.version>
 
         <!-- plugin versions -->
         <download-maven-plugin.version>1.4.1</download-maven-plugin.version>
@@ -50,15 +50,9 @@
         <dependencies>
 
             <dependency>
-                <groupId>org.slf4j</groupId>
-                <artifactId>slf4j-api</artifactId>
-                <version>${slf4j.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>ch.qos.logback</groupId>
-                <artifactId>logback-classic</artifactId>
-                <version>${logback.version}</version>
+                <groupId>com.google.code.findbugs</groupId>
+                <artifactId>jsr305</artifactId>
+                <version>${jsr305.version}</version>
             </dependency>
 
             <dependency>
@@ -101,6 +95,12 @@
                 <groupId>junit</groupId>
                 <artifactId>junit</artifactId>
                 <version>${junit.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.assertj</groupId>
+                <artifactId>assertj-core</artifactId>
+                <version>${assertj.version}</version>
             </dependency>
 
         </dependencies>
