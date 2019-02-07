@@ -9,11 +9,12 @@ public class QuasarActorRingBenchmarkTest extends QuasarActorRingBenchmark {
 
     @Test
     public void testRingBenchmark() throws Exception {
-        long startTimeNanos = System.nanoTime();
-        RingBenchmark benchmark = new QuasarActorRingBenchmark();
-        int[] sequences = benchmark.ringBenchmark();
-        RingBenchmarkTestUtil.verifyResult(sequences);
-        log("duration: %s", formatDurationSinceNanos(startTimeNanos));
+        try (QuasarActorRingBenchmark benchmark = new QuasarActorRingBenchmark()) {
+            long startTimeNanos = System.nanoTime();
+            int[] sequences = benchmark.ringBenchmark();
+            RingBenchmarkTestUtil.verifyResult(sequences);
+            log("duration: %s", formatDurationSinceNanos(startTimeNanos));
+        }
     }
 
 }
