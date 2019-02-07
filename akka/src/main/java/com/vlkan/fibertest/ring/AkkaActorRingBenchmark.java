@@ -4,53 +4,57 @@ import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
-import akka.dispatch.Futures;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
+import com.vlkan.fibertest.SingletonSynchronizer;
 import org.openjdk.jmh.annotations.Benchmark;
-import scala.concurrent.Await;
-import scala.concurrent.Future;
-import scala.concurrent.Promise;
-import scala.concurrent.duration.Duration;
+import org.openjdk.jmh.annotations.Scope;
+import org.openjdk.jmh.annotations.State;
+import org.openjdk.jmh.annotations.TearDown;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
+import java.util.Arrays;
+import java.util.concurrent.Callable;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
 
+import static com.vlkan.fibertest.StdoutLogger.log;
 import static com.vlkan.fibertest.ring.RingBenchmarkConfig.*;
 
 /**
  * Ring benchmark using Akka {@link akka.actor.Actor}s.
  */
+@State(Scope.Benchmark)
 public class AkkaActorRingBenchmark implements RingBenchmark {
 
     /** @noinspection deprecation (easier to use in Java) */
-    private static class InternalActor extends UntypedActor {
+    private static final class Worker extends UntypedActor {
 
-        /** @noinspection unused (kept for debugging purposes) */
         private final int id;
 
-        private final Promise<Integer> promise;
+        private final int[] sequences;
+
+        private final SingletonSynchronizer completionSynchronizer;
 
         private ActorRef next = null;
 
-        private InternalActor(int id, Promise<Integer> promise) {
+        private Worker(int id, int[] sequences, SingletonSynchronizer completionSynchronizer) {
             this.id = id;
-            this.promise = promise;
+            this.sequences = sequences;
+            this.completionSynchronizer = completionSynchronizer;
         }
 
         @Override
         public void onReceive(final Object message) {
+            log("[%2d] started", id);
             if (message instanceof Integer) {
-                int sequence = (Integer) message;
-                if (sequence < 1) {
-                    promise.success(sequence);
-                    getContext().stop(getSelf());
+                int sequence = sequences[id] = (Integer) message;
+                if (sequence <= 0) {
+                    log("[%2d] signaling completion (sequence=%d)", () -> new Object[]{id, sequence});
+                    completionSynchronizer.signal();
+                } else {
+                    log("[%2d] signaling next (sequence=%d)", () -> new Object[]{id, sequence});
+                    next.tell(sequence - 1, getSelf());
                 }
-                next.tell(sequence - 1, getSelf());
             } else if (message instanceof ActorRef) {
                 next = (ActorRef) message;
             } else {
@@ -60,61 +64,87 @@ public class AkkaActorRingBenchmark implements RingBenchmark {
 
     }
 
-    @Override
-    @Benchmark
-    public int[] ringBenchmark() throws Exception {
+    private static final class Context implements AutoCloseable, Callable<int[]> {
 
-        // Create the actor system.
-        String configText = Stream
-                .of(
-                        "akka.log-dead-letters-during-shutdown = off",
-                        "akka.log-dead-letters = off",
-                        String.format(
-                                "akka.actor.default-dispatcher.fork-join-executor { parallelism-min = %d, parallelism-max = %d }",
-                                THREAD_COUNT, THREAD_COUNT))
-                .collect(Collectors.joining(", "));
-        Config config = ConfigFactory.parseString(configText);
-        ActorSystem system = ActorSystem.create(AkkaActorRingBenchmark.class.getSimpleName() + "System", config);
+        private final int[] sequences = new int[WORKER_COUNT];
 
-        // Create actors.
-        List<Future<Integer>> futures = new ArrayList<>(WORKER_COUNT);
-        ActorRef[] actors = new ActorRef[WORKER_COUNT];
-        for (int workerIndex = 0; workerIndex < WORKER_COUNT; workerIndex++) {
-            Promise<Integer> promise = Futures.promise();
-            futures.add(promise.future());
-            Props actorProps = Props.create(InternalActor.class, workerIndex, promise);
-            String actorName = "AkkaActor-" + workerIndex;
-            actors[workerIndex] = system.actorOf(
-                    actorProps,
-                    actorName);
+        private final SingletonSynchronizer completionSynchronizer = new SingletonSynchronizer();
+
+        private final ActorSystem system;
+
+        private final ActorRef[] actors;
+
+        private Context() {
+
+            log("creating the actor system (THREAD_COUNT=%d)", THREAD_COUNT);
+            String configText = Stream
+                    .of(
+                            "akka.log-dead-letters-during-shutdown = off",
+                            "akka.log-dead-letters = off",
+                            String.format(
+                                    "akka.actor.default-dispatcher.fork-join-executor { parallelism-min = %d, parallelism-max = %d }",
+                                    THREAD_COUNT, THREAD_COUNT))
+                    .collect(Collectors.joining(", "));
+            Config config = ConfigFactory.parseString(configText);
+            this.system = ActorSystem.create("AkkaActorRingBenchmarkSystem", config);
+
+            log("creating actors (WORKER_COUNT=%d)", WORKER_COUNT);
+            this.actors = new ActorRef[WORKER_COUNT];
+            for (int workerIndex = 0; workerIndex < WORKER_COUNT; workerIndex++) {
+                Props actorProps = Props.create(Worker.class, workerIndex, sequences, completionSynchronizer);
+                String actorName = "AkkaActor-" + workerIndex;
+                actors[workerIndex] = system.actorOf(actorProps, actorName);
+            }
+
+            log("setting next actor pointers");
+            for (int workerIndex = 0; workerIndex < WORKER_COUNT; workerIndex++) {
+                ActorRef nextActorRef = actors[(workerIndex + 1) % WORKER_COUNT];
+                actors[workerIndex].tell(nextActorRef, null);
+            }
+
         }
 
-        // Set next actor pointers.
-        for (int workerIndex = 0; workerIndex < WORKER_COUNT; workerIndex++) {
-            actors[workerIndex].tell(actors[(workerIndex + 1) % WORKER_COUNT], null);
+        @Override
+        public void close() {
+            log("terminating");
+            system.terminate();
         }
 
-        // Initiate the ring.
-        actors[0].tell(MESSAGE_PASSING_COUNT, null);
+        @Override
+        public int[] call() {
 
-        // Wait for the latch.
-        Iterable<Integer> sequences = Await.result(
-                Futures.sequence(futures, system.dispatcher()),
-                Duration.apply(10, TimeUnit.MINUTES));
+            log("initiating the ring (MESSAGE_PASSING_COUNT=%d)", MESSAGE_PASSING_COUNT);
+            ActorRef firstActor = actors[0];
+            firstActor.tell(MESSAGE_PASSING_COUNT, null);
 
-        // Shutdown actors.
-        system.terminate();
+            log("waiting for completion");
+            completionSynchronizer.await();
 
-        // Return populated sequences.
-        return StreamSupport
-                .stream(sequences.spliterator(), false)
-                .mapToInt(sequence -> sequence)
-                .toArray();
+            log("returning populated sequences (sequences=%s)", () -> new Object[]{Arrays.toString(sequences)});
+            return sequences;
+
+        }
 
     }
 
-    public static void main(String[] args) throws Exception {
-        new AkkaActorRingBenchmark().ringBenchmark();
+    private final Context context = new Context();
+
+    @Override
+    @TearDown
+    public void close() {
+        context.close();
+    }
+
+    @Override
+    @Benchmark
+    public int[] ringBenchmark() {
+        return context.call();
+    }
+
+    public static void main(String[] args) {
+        try (AkkaActorRingBenchmark benchmark = new AkkaActorRingBenchmark()) {
+            benchmark.ringBenchmark();
+        }
     }
 
 }
