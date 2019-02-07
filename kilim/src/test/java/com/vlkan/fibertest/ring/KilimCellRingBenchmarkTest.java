@@ -3,19 +3,11 @@ package com.vlkan.fibertest.ring;
 import kilim.tools.Kilim;
 import org.junit.Test;
 
-import static com.vlkan.fibertest.DurationHelper.formatDurationSinceNanos;
-import static com.vlkan.fibertest.StdoutLogger.log;
-
 public class KilimCellRingBenchmarkTest {
 
     @SuppressWarnings("unused")     // entrance for Kilim.run()
     public static void kilimEntrance(String[] ignored) {
-        try (KilimCellRingBenchmark benchmark = new KilimCellRingBenchmark()) {
-            long startTimeNanos = System.nanoTime();
-            int[] sequences = benchmark.ringBenchmark();
-            RingBenchmarkTestUtil.verifyResult(sequences);
-            log("duration: %s", formatDurationSinceNanos(startTimeNanos));
-        }
+        RingBenchmarkTestUtil.test(KilimCellRingBenchmark::new);
     }
 
     @Test
