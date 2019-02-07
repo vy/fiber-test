@@ -2,16 +2,22 @@ package com.vlkan.fibertest;
 
 public enum PropertyHelper {;
 
-    public static int readPositiveNonZeroIntegerProperty(String name, String defaultValue) {
+    public static int readIntegerPropertyGreaterThanOrEqualTo(String name, String defaultValue, int minValue) {
         String value = System.getProperty(name, defaultValue);
         int number;
         try {
             number = Integer.parseInt(value);
         } catch (NumberFormatException error) {
-            throw new IllegalArgumentException("illegal number: " + value, error);
+            String message = String.format(
+                    "illegal integer property (name=%s, defaultValue=%s, minValue=%d, value=%s)",
+                    name, defaultValue, minValue, value);
+            throw new IllegalArgumentException(message);
         }
-        if (number < 1) {
-            throw new IllegalArgumentException("illegal positive non-zero number: " + number);
+        if (number < minValue) {
+            String message = String.format(
+                    "illegal integer property (name=%s, defaultValue=%s, minValue=%d, value=%s)",
+                    name, defaultValue, minValue, value);
+            throw new IllegalArgumentException(message);
         }
         return number;
     }

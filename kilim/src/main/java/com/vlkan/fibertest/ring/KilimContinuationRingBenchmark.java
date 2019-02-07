@@ -40,13 +40,13 @@ public class KilimContinuationRingBenchmark implements RingBenchmark {
         @Override
         public void execute() throws Pausable {
             log("[%2d] started", _id);
-            do {
-                log("[%2d] signaling sequence (sequence=%d)", () -> new Object[] { _id, sequence });
+            while (sequence > 0) {
+                log("[%2d] signaling sequence (sequence=%d)", () -> new Object[]{_id, sequence});
                 next.sequence = sequence - 1;
                 continuations.enqueue(next);
                 log("[%2d] yielding", _id);
                 Fiber.yield();
-            } while (sequence > 0);
+            }
             log("[%2d] completed", _id);
         }
 
