@@ -1,7 +1,9 @@
 package com.vlkan.fibertest.ring;
 
+import com.vlkan.fibertest.SingletonSynchronizer;
 import org.openjdk.jmh.annotations.*;
 
+import java.util.Arrays;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -16,20 +18,21 @@ public class JavaFiberRingBenchmark implements RingBenchmark {
 
     private static final class Context implements AutoCloseable, Callable<int[]> {
 
+        private final SingletonSynchronizer completionSynchronizer = new SingletonSynchronizer();
+
+        private final int[] sequences = new int[WORKER_COUNT];
+
         private final ExecutorService executorService;
 
         private final Worker[] workers;
-
-        private final int[] sequences;
 
         private Context() {
 
             log("creating workers (WORKER_COUNT=%d)", WORKER_COUNT);
             this.workers = new Worker[WORKER_COUNT];
-            this.sequences = new int[WORKER_COUNT];
             CountDownLatch startLatch = new CountDownLatch(WORKER_COUNT);
             for (int workerIndex = 0; workerIndex < WORKER_COUNT; workerIndex++) {
-                Worker worker = new Worker(workerIndex, startLatch);
+                Worker worker = new Worker(workerIndex, startLatch, completionSynchronizer);
                 workers[workerIndex] = worker;
             }
 
@@ -74,28 +77,15 @@ public class JavaFiberRingBenchmark implements RingBenchmark {
                 firstWorker.lock.unlock();
             }
 
-            for (Worker worker : workers) {
-                log("waiting for completion (id=%d)", worker.id);
-                worker.lock.lock();
-                try {
-                    while (!worker.completed) {
-                        worker.completedCondition.await();
-                    }
-                    sequences[worker.id] = worker.sequence;
-                } catch (InterruptedException ignored) {
-                    log("interrupted (id=%d)", worker.id);
-                    Thread.currentThread().interrupt();
-                } finally {
-                    worker.lock.unlock();
-                }
+            log("waiting for completion");
+            completionSynchronizer.await();
+
+            log("collecting sequences");
+            for (int workerIndex = 0; workerIndex < WORKER_COUNT; workerIndex++) {
+                sequences[workerIndex] = workers[workerIndex].sequence;
             }
 
-            log("resetting workers");
-            for (Worker worker : workers) {
-                worker.completed = false;
-            }
-
-            log("returning populated sequences");
+            log("returning populated sequences (sequences=%s)", () -> new Object[] {Arrays.toString(sequences) });
             return sequences;
 
         }

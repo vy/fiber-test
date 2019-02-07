@@ -1,7 +1,9 @@
 package com.vlkan.fibertest.ring;
 
+import com.vlkan.fibertest.SingletonSynchronizer;
 import org.openjdk.jmh.annotations.*;
 
+import java.util.Arrays;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.locks.Condition;
@@ -24,23 +26,22 @@ public class JavaThreadRingBenchmark implements RingBenchmark {
 
         final Condition waitingCondition = lock.newCondition();
 
-        final Condition completedCondition = lock.newCondition();
-
         final int id;
 
         final CountDownLatch startLatch;
+
+        final SingletonSynchronizer completionSynchronizer;
 
         Worker next = null;
 
         boolean waiting = true;
 
-        boolean completed = false;
-
         int sequence;
 
-        Worker(int id, CountDownLatch startLatch) {
+        Worker(int id, CountDownLatch startLatch, SingletonSynchronizer completionSynchronizer) {
             this.id = id;
             this.startLatch = startLatch;
+            this.completionSynchronizer = completionSynchronizer;
         }
 
         @Override
@@ -51,30 +52,11 @@ public class JavaThreadRingBenchmark implements RingBenchmark {
             try {
                 // noinspection InfiniteLoopStatement
                 for (;;) {
-                    if (!waiting && !completed) {
-                        log("[%2d] locking next", id);
-                        next.lock.lock();
-                        try {
-                            if (!next.completed) {
-                                log("[%2d] signaling next", id);
-                                if (!next.waiting) {
-                                    String message = String.format("%s was expecting %s to be waiting", id, next.id);
-                                    throw new IllegalStateException(message);
-                                }
-                                next.sequence = sequence - 1;
-                                next.waiting = false;
-                                waiting = true;
-                                next.waitingCondition.signal();
-                            }
-                        } finally {
-                            log("[%2d] unlocking next", id);
-                            next.lock.unlock();
-                        }
+                    if (!waiting) {
                         if (sequence <= 0) {
-                            log("[%2d] signaling completion (sequence=%d)", () -> new Object[] { id, sequence });
-                            waiting = true;
-                            completed = true;
-                            completedCondition.signal();
+                            complete();
+                        } else {
+                            signalNext();
                         }
                     }
                     await();
@@ -85,6 +67,31 @@ public class JavaThreadRingBenchmark implements RingBenchmark {
             } finally {
                 log("[%2d] unlocking", id);
                 lock.unlock();
+            }
+        }
+
+        private void complete() {
+            log("[%2d] signaling completion (sequence=%d)", () -> new Object[] { id, sequence });
+            waiting = true;
+            completionSynchronizer.signal();
+        }
+
+        private void signalNext() {
+            log("[%2d] locking next", id);
+            next.lock.lock();
+            try {
+                log("[%2d] signaling next", id);
+                if (!next.waiting) {
+                    String message = String.format("%s was expecting %s to be waiting", id, next.id);
+                    throw new IllegalStateException(message);
+                }
+                next.sequence = sequence - 1;
+                next.waiting = false;
+                waiting = true;
+                next.waitingCondition.signal();
+            } finally {
+                log("[%2d] unlocking next", id);
+                next.lock.unlock();
             }
         }
 
@@ -100,7 +107,9 @@ public class JavaThreadRingBenchmark implements RingBenchmark {
 
     private static final class Context implements AutoCloseable, Callable<int[]> {
 
-        private final int[] sequences;
+        private final SingletonSynchronizer completionSynchronizer = new SingletonSynchronizer();
+
+        private final int[] sequences = new int[WORKER_COUNT];
 
         private final Worker[] workers;
 
@@ -109,12 +118,11 @@ public class JavaThreadRingBenchmark implements RingBenchmark {
         private Context() {
 
             log("creating worker threads (WORKER_COUNT=%d)", WORKER_COUNT);
-            this.sequences = new int[WORKER_COUNT];
             this.workers = new Worker[WORKER_COUNT];
             this.threads = new Thread[WORKER_COUNT];
             CountDownLatch startLatch = new CountDownLatch(WORKER_COUNT);
             for (int workerIndex = 0; workerIndex < WORKER_COUNT; workerIndex++) {
-                Worker worker = new Worker(workerIndex, startLatch);
+                Worker worker = new Worker(workerIndex, startLatch, completionSynchronizer);
                 workers[workerIndex] = worker;
                 threads[workerIndex] = new Thread(worker, "Worker-" + workerIndex);
             }
@@ -168,28 +176,15 @@ public class JavaThreadRingBenchmark implements RingBenchmark {
                 firstWorker.lock.unlock();
             }
 
-            for (Worker worker : workers) {
-                log("waiting for completion (id=%d)", worker.id);
-                worker.lock.lock();
-                try {
-                    while (!worker.completed) {
-                        worker.completedCondition.await();
-                    }
-                    sequences[worker.id] = worker.sequence;
-                } catch (InterruptedException ignored) {
-                    log("interrupted (id=%d)", worker.id);
-                    Thread.currentThread().interrupt();
-                } finally {
-                    worker.lock.unlock();
-                }
+            log("waiting for completion");
+            completionSynchronizer.await();
+
+            log("collecting sequences");
+            for (int workerIndex = 0; workerIndex < WORKER_COUNT; workerIndex++) {
+                sequences[workerIndex] = workers[workerIndex].sequence;
             }
 
-            log("resetting workers");
-            for (Worker worker : workers) {
-                worker.completed = false;
-            }
-
-            log("returning populated sequences");
+            log("returning populated sequences (sequences=%s)", () -> new Object[] {Arrays.toString(sequences) });
             return sequences;
 
         }
