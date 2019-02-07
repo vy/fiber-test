@@ -9,11 +9,12 @@ public class QuasarChannelRingBenchmarkTest {
 
     @Test
     public void testRingBenchmark() throws Exception {
-        long startTimeNanos = System.nanoTime();
-        RingBenchmark benchmark = new QuasarChannelRingBenchmark();
-        int[] sequences = benchmark.ringBenchmark();
-        RingBenchmarkTestUtil.verifyResult(sequences);
-        log("duration: %s", formatDurationSinceNanos(startTimeNanos));
+        try (RingBenchmark benchmark = new QuasarChannelRingBenchmark()) {
+            long startTimeNanos = System.nanoTime();
+            int[] sequences = benchmark.ringBenchmark();
+            RingBenchmarkTestUtil.verifyResult(sequences);
+            log("duration: %s", formatDurationSinceNanos(startTimeNanos));
+        }
     }
 
 }
